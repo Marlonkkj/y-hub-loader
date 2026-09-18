@@ -1,10 +1,13 @@
---// Y Hub Loader (Versão Original Integrada + Anti-Freeze + Anti-Parede)
+--// Y Hub Loader (URL Atualizada + Stand Attack Anti-Lag + Anti-Parede)
 local globalEnvironment = (getgenv and getgenv()) or _G
 local baseEnvironment = (getfenv and getfenv()) or _G
 local loaderConfig = globalEnvironment.YHubLoaderConfig
 	or globalEnvironment.YCoreLoaderConfig
 	or globalEnvironment.YAutoSignalLoaderConfig
 	or {}
+
+-- Configura a URL base com a rota de refs/heads/ corrigida
+loaderConfig.BaseUrl = "https://raw.githubusercontent.com/GodErste/Y-Core/refs/heads/main/"
 
 --// 1. SISTEMA DE COMBATE SEM LAG E ANTI-PAREDE (RAYCAST + TARGETING)
 local Players = game:GetService("Players")
@@ -118,7 +121,7 @@ globalEnvironment.StopStandAttack = function()
 		standHeartbeatConnection:Disconnect()
 		standHeartbeatConnection = nil
 	end
-	if standTargetThread then
+	if standTargetThread me then
 		task.cancel(standTargetThread)
 		standTargetThread = nil
 	end
@@ -126,7 +129,7 @@ globalEnvironment.StopStandAttack = function()
 end
 
 --// 2. CONFIGURAÇÕES E VARIÁVEIS BASE DO LOADER
-local baseUrl = loaderConfig.BaseUrl or "https://raw.githubusercontent.com/GodErste/Y-Core/main/"
+local baseUrl = loaderConfig.BaseUrl
 local verbose = loaderConfig.Verbose == true
 local automaticCacheBust = tostring(math.floor(os.clock() * 1000000))
 
