@@ -1,10 +1,11 @@
---// Y Hub - Versão Segura (PlayerGui Direto)
+--// Y Hub Original - Código Completo Direto
 pcall(function()
 	if setfpscap then
 		setfpscap(30)
 	end
 end)
 
+local CoreGui = game:GetService("CoreGui")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -12,74 +13,101 @@ local VirtualInputManager = game:GetService("VirtualInputManager")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
--- Garante que o PlayerGui existe antes de criar a interface
-local playerGui = LocalPlayer:WaitForChild("PlayerGui")
+-- Limpeza gráfica inicial leve
+pcall(function()
+	local Lighting = game:GetService("Lighting")
+	Lighting.GlobalShadows = false
+	Lighting.FogEnd = 9e9
+	Lighting.Technology = Enum.Technology.Compatibility
+end)
 
--- Remove duplicados antigos se existirem
-if playerGui:FindFirstChild("YHub_SafeGui") then
-	playerGui.YHub_SafeGui:Destroy()
+if CoreGui:FindFirstChild("YHub_CompleteGui") then
+	CoreGui.YHub_CompleteGui:Destroy()
 end
 
--- Criação da GUI na camada segura do jogador
+-- Criação da GUI Principal
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "YHub_SafeGui"
-screenGui.ResetOnSpawn = false
-screenGui.Parent = playerGui
+screenGui.Name = "YHub_CompleteGui"
+screenGui.Parent = CoreGui
 
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 220, 0, 210)
+frame.Size = UDim2.new(0, 220, 0, 225)
 frame.Position = UDim2.new(0, 30, 0, 150)
-frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 frame.BorderSizePixel = 2
 frame.BorderColor3 = Color3.fromRGB(0, 255, 128)
 frame.Active = true
 frame.Draggable = true
 frame.Parent = screenGui
 
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 8)
+corner.Parent = frame
+
 local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, 0, 0, 30)
+title.Size = UDim2.new(1, -40, 0, 30)
 title.BackgroundTransparency = 1
-title.Text = "Y Hub - Seguro [Delete p/ Ocultar]"
+title.Text = "Y Hub - [Delete] p/ Fechar"
 title.TextColor3 = Color3.fromRGB(0, 255, 128)
 title.TextSize = 11
 title.Font = Enum.Font.SourceSansBold
 title.Parent = frame
 
--- Estados das funções
-local noclipActive = false
-local godActive = false
-local flyActive = false
-local comboActive = false
-local flySpeed = 1.6
-local currentPos = nil
-local chaosTick = 0
-local comboStep = 0
+local minimizeBtn = Instance.new("TextButton")
+minimizeBtn.Size = UDim2.new(0, 30, 0, 20)
+minimizeBtn.Position = UDim2.new(1, -35, 0, 5)
+minimizeBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+minimizeBtn.Text = "-"
+minimizeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+minimizeBtn.TextSize = 12
+minimizeBtn.Font = Enum.Font.SourceSansBold
+minimizeBtn.Parent = frame
+Instance.new("UICorner", minimizeBtn).CornerRadius = UDim.new(0, 4)
 
--- Função utilitária para criar os botões com segurança
-local function createButton(posY, defaultText)
-	local btn = Instance.new("TextButton")
-	btn.Size = UDim2.new(0, 200, 0, 25)
-	btn.Position = UDim2.new(0, 10, 0, posY)
-	btn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
-	btn.Text = defaultText
-	btn.TextColor3 = Color3.fromRGB(255, 80, 80)
-	btn.TextSize = 10
-	btn.Font = Enum.Font.SourceSansBold
-	btn.Parent = frame
-	
-	local corner = Instance.new("UICorner")
-	corner.CornerRadius = UDim.new(0, 4)
-	corner.Parent = btn
-	
-	return btn
-end
+local noclipBtn = Instance.new("TextButton")
+noclipBtn.Size = UDim2.new(0, 200, 0, 25)
+noclipBtn.Position = UDim2.new(0, 10, 0, 35)
+noclipBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+noclipBtn.Text = "NoClip (Atravessar): OFF"
+noclipBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
+noclipBtn.TextSize = 11
+noclipBtn.Font = Enum.Font.SourceSansBold
+noclipBtn.Parent = frame
+Instance.new("UICorner", noclipBtn).CornerRadius = UDim.new(0, 5)
 
-local noclipBtn = createButton(35, "NoClip (Atravessar): OFF")
-local godBtn = createButton(65, "Anti-Morte (Imortal): OFF")
-local flyBtn = createButton(95, "Voo Caótico (Imprevisível): OFF")
-local comboBtn = createButton(125, "Combo 3 Hits + R: OFF")
+local godBtn = Instance.new("TextButton")
+godBtn.Size = UDim2.new(0, 200, 0, 25)
+godBtn.Position = UDim2.new(0, 10, 0, 65)
+godBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+godBtn.Text = "Anti-Morte (Imortal): OFF"
+godBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
+godBtn.TextSize = 11
+godBtn.Font = Enum.Font.SourceSansBold
+godBtn.Parent = frame
+Instance.new("UICorner", godBtn).CornerRadius = UDim.new(0, 5)
 
--- Seção de Velocidade
+local flyBtn = Instance.new("TextButton")
+flyBtn.Size = UDim2.new(0, 200, 0, 25)
+flyBtn.Position = UDim2.new(0, 10, 0, 95)
+flyBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+flyBtn.Text = "Voo Caótico (Imprevisível): OFF"
+flyBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
+flyBtn.TextSize = 10
+flyBtn.Font = Enum.Font.SourceSansBold
+flyBtn.Parent = frame
+Instance.new("UICorner", flyBtn).CornerRadius = UDim.new(0, 5)
+
+local comboBtn = Instance.new("TextButton")
+comboBtn.Size = UDim2.new(0, 200, 0, 25)
+comboBtn.Position = UDim2.new(0, 10, 0, 125)
+comboBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+comboBtn.Text = "Combo 3 Hits + R (Automático): OFF"
+comboBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
+comboBtn.TextSize = 10
+comboBtn.Font = Enum.Font.SourceSansBold
+comboBtn.Parent = frame
+Instance.new("UICorner", comboBtn).CornerRadius = UDim.new(0, 5)
+
 local speedLabel = Instance.new("TextLabel")
 speedLabel.Size = UDim2.new(0, 200, 0, 20)
 speedLabel.Position = UDim2.new(0, 10, 0, 155)
@@ -92,25 +120,69 @@ speedLabel.Parent = frame
 
 local minusBtn = Instance.new("TextButton")
 minusBtn.Size = UDim2.new(0, 95, 0, 20)
-minusBtn.Position = UDim2.new(0, 10, 0, 180)
+minusBtn.Position = UDim2.new(0, 10, 0, 185)
 minusBtn.BackgroundColor3 = Color3.fromRGB(60, 40, 40)
 minusBtn.Text = "(- Vel)"
 minusBtn.TextColor3 = Color3.fromRGB(255, 150, 150)
 minusBtn.TextSize = 10
 minusBtn.Font = Enum.Font.SourceSansBold
 minusBtn.Parent = frame
+Instance.new("UICorner", minusBtn).CornerRadius = UDim.new(0, 5)
 
 local plusBtn = Instance.new("TextButton")
 plusBtn.Size = UDim2.new(0, 95, 0, 20)
-plusBtn.Position = UDim2.new(0, 115, 0, 180)
+plusBtn.Position = UDim2.new(0, 115, 0, 185)
 plusBtn.BackgroundColor3 = Color3.fromRGB(40, 60, 40)
 plusBtn.Text = "(+ Vel)"
 plusBtn.TextColor3 = Color3.fromRGB(150, 255, 150)
 plusBtn.TextSize = 10
 plusBtn.Font = Enum.Font.SourceSansBold
 plusBtn.Parent = frame
+Instance.new("UICorner", plusBtn).CornerRadius = UDim.new(0, 5)
 
--- Conexões de cliques protegidas por pcall
+local noclipActive = false
+local godActive = false
+local flyActive = false
+local comboActive = false
+local isMinimized = false
+local isHidden = false
+local currentPos = nil
+local flySpeed = 1.6
+local chaosTick = 0
+local comboStep = 0
+
+UserInputService.InputBegan:Connect(function(input)
+	if input.KeyCode == Enum.KeyCode.Delete then
+		isHidden = not isHidden
+		frame.Visible = not isHidden
+	end
+end)
+
+minimizeBtn.MouseButton1Click:Connect(function()
+	isMinimized = not isMinimized
+	if isMinimized then
+		noclipBtn.Visible = false
+		godBtn.Visible = false
+		flyBtn.Visible = false
+		comboBtn.Visible = false
+		speedLabel.Visible = false
+		minusBtn.Visible = false
+		plusBtn.Visible = false
+		frame.Size = UDim2.new(0, 220, 0, 30)
+		minimizeBtn.Text = "+"
+	else
+		noclipBtn.Visible = true
+		godBtn.Visible = true
+		flyBtn.Visible = true
+		comboBtn.Visible = true
+		speedLabel.Visible = true
+		minusBtn.Visible = true
+		plusBtn.Visible = true
+		frame.Size = UDim2.new(0, 220, 0, 225)
+		minimizeBtn.Text = "-"
+	end
+end)
+
 noclipBtn.MouseButton1Click:Connect(function()
 	noclipActive = not noclipActive
 	noclipBtn.Text = noclipActive and "NoClip (Atravessar): ON" or "NoClip (Atravessar): OFF"
@@ -128,24 +200,22 @@ flyBtn.MouseButton1Click:Connect(function()
 	flyBtn.Text = flyActive and "Voo Caótico (Imprevisível): ON" or "Voo Caótico (Imprevisível): OFF"
 	flyBtn.TextColor3 = flyActive and Color3.fromRGB(80, 255, 80) or Color3.fromRGB(255, 80, 80)
 
-	pcall(function()
-		local char = LocalPlayer.Character
-		local root = char and char:FindFirstChild("HumanoidRootPart")
-		local humanoid = char and char:FindFirstChildOfClass("Humanoid")
+	local char = LocalPlayer.Character
+	local root = char and char:FindFirstChild("HumanoidRootPart")
+	local humanoid = char and char:FindFirstChildOfClass("Humanoid")
 
-		if flyActive then
-			if root then currentPos = root.CFrame; root.Anchored = true end
-			if humanoid then humanoid.PlatformStand = true end
-		else
-			if root then root.Anchored = false end
-			if humanoid then humanoid.PlatformStand = false end
-		end
-	end)
+	if flyActive then
+		if root then currentPos = root.CFrame; root.Anchored = true end
+		if humanoid then humanoid.PlatformStand = true end
+	else
+		if root then root.Anchored = false end
+		if humanoid then humanoid.PlatformStand = false end
+	end
 end)
 
 comboBtn.MouseButton1Click:Connect(function()
 	comboActive = not comboActive
-	comboBtn.Text = comboActive and "Combo 3 Hits + R: ON" or "Combo 3 Hits + R: OFF"
+	comboBtn.Text = comboActive and "Combo 3 Hits + R (Automático): ON" or "Combo 3 Hits + R (Automático): OFF"
 	comboBtn.TextColor3 = comboActive and Color3.fromRGB(80, 255, 80) or Color3.fromRGB(255, 80, 80)
 end)
 
@@ -159,79 +229,69 @@ plusBtn.MouseButton1Click:Connect(function()
 	speedLabel.Text = string.format("Velocidade: %.1f", flySpeed)
 end)
 
--- Tecla Delete para alternar visibilidade
-UserInputService.InputBegan:Connect(function(input)
-	if input.KeyCode == Enum.KeyCode.Delete then
-		frame.Visible = not frame.Visible
+RunService.RenderStepped:Connect(function()
+	local char = LocalPlayer.Character
+	if not char then return end
+	local root = char:FindFirstChild("HumanoidRootPart")
+	local humanoid = char:FindFirstChildOfClass("Humanoid")
+
+	if noclipActive and root then
+		for _, part in ipairs(char:GetDescendants()) do
+			if part:IsA("BasePart") and part.CanCollide then
+				part.CanCollide = false
+			end
+		end
+	end
+
+	if godActive and humanoid then
+		if humanoid.Health < humanoid.MaxHealth then
+			humanoid.Health = humanoid.MaxHealth
+		end
+		if humanoid.PlatformStand and not flyActive then
+			humanoid.PlatformStand = false
+		end
+	end
+
+	if flyActive and root then
+		local camCFrame = Camera.CFrame
+		local moveDirection = Vector3.new(0, 0, 0)
+
+		if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDirection = moveDirection + camCFrame.LookVector end
+		if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDirection = moveDirection - camCFrame.LookVector end
+		if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDirection = moveDirection - camCFrame.RightVector end
+		if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDirection = moveDirection + camCFrame.RightVector end
+
+		if currentPos then
+			if moveDirection.Magnitude > 0 then
+				currentPos = currentPos + (moveDirection.Unit * flySpeed)
+			end
+			
+			chaosTick = chaosTick + 1
+			local jitterX = math.sin(chaosTick * 1.8) * 1.5
+			local jitterY = math.cos(chaosTick * 2.2) * 0.9
+			local jitterZ = math.cos(chaosTick * 1.5) * 1.5
+			
+			root.CFrame = CFrame.new(currentPos.Position + Vector3.new(jitterX, jitterY, jitterZ)) * camCFrame.Rotation * CFrame.Angles(math.rad(-90), 0, 0)
+		end
+	end
+
+	if comboActive then
+		comboStep = comboStep + 1
+		if comboStep == 30 then
+			pcall(function()
+				for i = 1, 3 do
+					VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 0)
+					task.wait(0.02)
+					VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 0)
+					task.wait(0.05)
+				end
+				VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.R, false, game)
+				task.wait(0.05)
+				VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.R, false, game)
+			end)
+			comboStep = 0
+		end
 	end
 end)
 
--- Loop principal robusto
-RunService.RenderStepped:Connect(function()
-	pcall(function()
-		local char = LocalPlayer.Character
-		if not char then return end
-		local root = char:FindFirstChild("HumanoidRootPart")
-		local humanoid = char:FindFirstChildOfClass("Humanoid")
-
-		if noclipActive and root then
-			for _, part in ipairs(char:GetDescendants()) do
-				if part:IsA("BasePart") and part.CanCollide then
-					part.CanCollide = false
-				end
-			end
-		end
-
-		if godActive and humanoid then
-			if humanoid.Health < humanoid.MaxHealth then
-				humanoid.Health = humanoid.MaxHealth
-			end
-			if humanoid.PlatformStand and not flyActive then
-				humanoid.PlatformStand = false
-			end
-		end
-
-		if flyActive and root then
-			local camCFrame = Camera.CFrame
-			local moveDirection = Vector3.new(0, 0, 0)
-
-			if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDirection = moveDirection + camCFrame.LookVector end
-			if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDirection = moveDirection - camCFrame.LookVector end
-			if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDirection = moveDirection - camCFrame.RightVector end
-			if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDirection = moveDirection + camCFrame.RightVector end
-
-			if currentPos then
-				if moveDirection.Magnitude > 0 then
-					currentPos = currentPos + (moveDirection.Unit * flySpeed)
-				end
-				
-				chaosTick = chaosTick + 1
-				local jitterX = math.sin(chaosTick * 1.8) * 1.5
-				local jitterY = math.cos(chaosTick * 2.2) * 0.9
-				local jitterZ = math.cos(chaosTick * 1.5) * 1.5
-				
-				root.CFrame = CFrame.new(currentPos.Position + Vector3.new(jitterX, jitterY, jitterZ)) * camCFrame.Rotation * CFrame.Angles(math.rad(-90), 0, 0)
-			end
-		end
-
-		if comboActive then
-			comboStep = comboStep + 1
-			if comboStep == 30 then
-				pcall(function()
-					for i = 1, 3 do
-						VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 0)
-						task.wait(0.02)
-						VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 0)
-						task.wait(0.05)
-					end
-					VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.R, false, game)
-					task.wait(0.05)
-					VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.R, false, game)
-				end)
-				comboStep = 0
-			end
-		end
-	end)
-end)
-
-print("[Y Hub] Versão PlayerGui carregada com sucesso!")
+print("[Y Hub] Versão original carregada com sucesso!")
