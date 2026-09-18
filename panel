@@ -1,4 +1,11 @@
---// Y Hub - Lógica Global Otimizada para Integração em GUI Externa
+--// Y Hub Completo - Voo Caótico + Anti-Morte + NoClip + Combo 3 Hits + Tecla Delete
+pcall(function()
+	if setfpscap then
+		setfpscap(30)
+	end
+end)
+
+local CoreGui = game:GetService("CoreGui")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -6,60 +13,241 @@ local VirtualInputManager = game:GetService("VirtualInputManager")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
--- Variáveis de Estado das Funções
-local _G_NoClip = false
-local _G_GodMode = false
-local _G_ChaosFly = false
-local _G_AutoCombo = false
+-- Limpeza gráfica inicial leve para zerar o lag
+pcall(function()
+	local Lighting = game:GetService("Lighting")
+	Lighting.GlobalShadows = false
+	Lighting.FogEnd = 9e9
+	Lighting.Technology = Enum.Technology.Compatibility
+	
+	for _, v in ipairs(Lighting:GetChildren()) do
+		if v:IsA("PostEffect") or v:IsA("BlurEffect") or v:IsA("SunRaysEffect") or v:IsA("Atmosphere") then
+			v.Enabled = false
+		end
+	end
+end)
 
-local flySpeed = 1.6
+-- Remove interface anterior se já existir
+if CoreGui:FindFirstChild("YHub_CompleteGui") then
+	CoreGui.YHub_CompleteGui:Destroy()
+end
+
+-- Criação da GUI Principal
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "YHub_CompleteGui"
+screenGui.Parent = CoreGui
+
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 220, 0, 225)
+frame.Position = UDim2.new(0, 30, 0, 150)
+frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+frame.BorderSizePixel = 2
+frame.BorderColor3 = Color3.fromRGB(0, 255, 128)
+frame.Active = true
+frame.Draggable = true
+frame.Parent = screenGui
+
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 8)
+corner.Parent = frame
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, -40, 0, 30)
+title.BackgroundTransparency = 1
+title.Text = "Y Hub - [Delete] p/ Fechar"
+title.TextColor3 = Color3.fromRGB(0, 255, 128)
+title.TextSize = 11
+title.Font = Enum.Font.SourceSansBold
+title.Parent = frame
+
+local minimizeBtn = Instance.new("TextButton")
+minimizeBtn.Size = UDim2.new(0, 30, 0, 20)
+minimizeBtn.Position = UDim2.new(1, -35, 0, 5)
+minimizeBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+minimizeBtn.Text = "-"
+minimizeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+minimizeBtn.TextSize = 12
+minimizeBtn.Font = Enum.Font.SourceSansBold
+minimizeBtn.Parent = frame
+Instance.new("UICorner", minimizeBtn).CornerRadius = UDim.new(0, 4)
+
+local noclipBtn = Instance.new("TextButton")
+noclipBtn.Size = UDim2.new(0, 200, 0, 25)
+noclipBtn.Position = UDim2.new(0, 10, 0, 35)
+noclipBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+noclipBtn.Text = "NoClip (Atravessar): OFF"
+noclipBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
+noclipBtn.TextSize = 11
+noclipBtn.Font = Enum.Font.SourceSansBold
+noclipBtn.Parent = frame
+Instance.new("UICorner", noclipBtn).CornerRadius = UDim.new(0, 5)
+
+local godBtn = Instance.new("TextButton")
+godBtn.Size = UDim2.new(0, 200, 0, 25)
+godBtn.Position = UDim2.new(0, 10, 0, 65)
+godBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+godBtn.Text = "Anti-Morte (Imortal): OFF"
+godBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
+godBtn.TextSize = 11
+godBtn.Font = Enum.Font.SourceSansBold
+godBtn.Parent = frame
+Instance.new("UICorner", godBtn).CornerRadius = UDim.new(0, 5)
+
+local flyBtn = Instance.new("TextButton")
+flyBtn.Size = UDim2.new(0, 200, 0, 25)
+flyBtn.Position = UDim2.new(0, 10, 0, 95)
+flyBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+flyBtn.Text = "Voo Caótico (Imprevisível): OFF"
+flyBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
+flyBtn.TextSize = 10
+flyBtn.Font = Enum.Font.SourceSansBold
+flyBtn.Parent = frame
+Instance.new("UICorner", flyBtn).CornerRadius = UDim.new(0, 5)
+
+local comboBtn = Instance.new("TextButton")
+comboBtn.Size = UDim2.new(0, 200, 0, 25)
+comboBtn.Position = UDim2.new(0, 10, 0, 125)
+comboBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+comboBtn.Text = "Combo 3 Hits + R (Automático): OFF"
+comboBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
+comboBtn.TextSize = 10
+comboBtn.Font = Enum.Font.SourceSansBold
+comboBtn.Parent = frame
+Instance.new("UICorner", comboBtn).CornerRadius = UDim.new(0, 5)
+
+-- Botões de Velocidade
+local speedLabel = Instance.new("TextLabel")
+speedLabel.Size = UDim2.new(0, 200, 0, 20)
+speedLabel.Position = UDim2.new(0, 10, 0, 155)
+speedLabel.BackgroundTransparency = 1
+speedLabel.Text = "Velocidade: 1.6"
+speedLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+speedLabel.TextSize = 11
+speedLabel.Font = Enum.Font.SourceSansBold
+speedLabel.Parent = frame
+
+local minusBtn = Instance.new("TextButton")
+minusBtn.Size = UDim2.new(0, 95, 0, 20)
+minusBtn.Position = UDim2.new(0, 10, 0, 185)
+minusBtn.BackgroundColor3 = Color3.fromRGB(60, 40, 40)
+minusBtn.Text = "(- Vel)"
+minusBtn.TextColor3 = Color3.fromRGB(255, 150, 150)
+minusBtn.TextSize = 10
+minusBtn.Font = Enum.Font.SourceSansBold
+minusBtn.Parent = frame
+Instance.new("UICorner", minusBtn).CornerRadius = UDim.new(0, 5)
+
+local plusBtn = Instance.new("TextButton")
+plusBtn.Size = UDim2.new(0, 95, 0, 20)
+plusBtn.Position = UDim2.new(0, 115, 0, 185)
+plusBtn.BackgroundColor3 = Color3.fromRGB(40, 60, 40)
+plusBtn.Text = "(+ Vel)"
+plusBtn.TextColor3 = Color3.fromRGB(150, 255, 150)
+plusBtn.TextSize = 10
+plusBtn.Font = Enum.Font.SourceSansBold
+plusBtn.Parent = frame
+Instance.new("UICorner", plusBtn).CornerRadius = UDim.new(0, 5)
+
+-- Estados das Funções
+local noclipActive = false
+local godActive = false
+local flyActive = false
+local comboActive = false
+local isMinimized = false
+local isHidden = false
 local currentPos = nil
+local flySpeed = 1.6
 local chaosTick = 0
 local comboStep = 0
 
--- Funções de Controle (Ligue/Desligue nos botões da GUI deles)
-local YHubFunctions = {}
+-- Atalho com a tecla Delete para fechar/abrir o painel
+UserInputService.InputBegan:Connect(function(input)
+	if input.KeyCode == Enum.KeyCode.Delete then
+		isHidden = not isHidden
+		frame.Visible = not isHidden
+	end
+end)
 
-function YHubFunctions.ToggleNoClip(state)
-	_G_NoClip = state
-end
+minimizeBtn.MouseButton1Click:Connect(function()
+	isMinimized = not isMinimized
+	if isMinimized then
+		noclipBtn.Visible = false
+		godBtn.Visible = false
+		flyBtn.Visible = false
+		comboBtn.Visible = false
+		speedLabel.Visible = false
+		minusBtn.Visible = false
+		plusBtn.Visible = false
+		frame.Size = UDim2.new(0, 220, 0, 30)
+		minimizeBtn.Text = "+"
+	else
+		noclipBtn.Visible = true
+		godBtn.Visible = true
+		flyBtn.Visible = true
+		comboBtn.Visible = true
+		speedLabel.Visible = true
+		minusBtn.Visible = true
+		plusBtn.Visible = true
+		frame.Size = UDim2.new(0, 220, 0, 225)
+		minimizeBtn.Text = "-"
+	end
+end)
 
-function YHubFunctions.ToggleGodMode(state)
-	_G_GodMode = state
-end
+noclipBtn.MouseButton1Click:Connect(function()
+	noclipActive = not noclipActive
+	noclipBtn.Text = noclipActive and "NoClip (Atravessar): ON" or "NoClip (Atravessar): OFF"
+	noclipBtn.TextColor3 = noclipActive and Color3.fromRGB(80, 255, 80) or Color3.fromRGB(255, 80, 80)
+end)
 
-function YHubFunctions.ToggleChaosFly(state)
-	_G_ChaosFly = state
+godBtn.MouseButton1Click:Connect(function()
+	godActive = not godActive
+	godBtn.Text = godActive and "Anti-Morte (Imortal): ON" or "Anti-Morte (Imortal): OFF"
+	godBtn.TextColor3 = godActive and Color3.fromRGB(80, 255, 80) or Color3.fromRGB(255, 80, 80)
+end)
+
+flyBtn.MouseButton1Click:Connect(function()
+	flyActive = not flyActive
+	flyBtn.Text = flyActive and "Voo Caótico (Imprevisível): ON" or "Voo Caótico (Imprevisível): OFF"
+	flyBtn.TextColor3 = flyActive and Color3.fromRGB(80, 255, 80) or Color3.fromRGB(255, 80, 80)
+
 	local char = LocalPlayer.Character
 	local root = char and char:FindFirstChild("HumanoidRootPart")
 	local humanoid = char and char:FindFirstChildOfClass("Humanoid")
 
-	if _G_ChaosFly then
+	if flyActive then
 		if root then currentPos = root.CFrame; root.Anchored = true end
 		if humanoid then humanoid.PlatformStand = true end
 	else
 		if root then root.Anchored = false end
 		if humanoid then humanoid.PlatformStand = false end
 	end
-end
+end)
 
-function YHubFunctions.ToggleAutoCombo(state)
-	_G_AutoCombo = state
-end
+comboBtn.MouseButton1Click:Connect(function()
+	comboActive = not comboActive
+	comboBtn.Text = comboActive and "Combo 3 Hits + R (Automático): ON" or "Combo 3 Hits + R (Automático): OFF"
+	comboBtn.TextColor3 = comboActive and Color3.fromRGB(80, 255, 80) or Color3.fromRGB(255, 80, 80)
+end)
 
-function YHubFunctions.SetSpeed(val)
-	flySpeed = math.clamp(val, 0.2, 10.0)
-end
+minusBtn.MouseButton1Click:Connect(function()
+	flySpeed = math.max(0.2, flySpeed - 0.3)
+	speedLabel.Text = string.format("Velocidade: %.1f", flySpeed)
+end)
 
--- Loop Principal de Processamento (Leve, sem travar o servidor cheio)
+plusBtn.MouseButton1Click:Connect(function()
+	flySpeed = math.min(10.0, flySpeed + 0.3)
+	speedLabel.Text = string.format("Velocidade: %.1f", flySpeed)
+end)
+
+-- Loop principal otimizado e leve
 RunService.RenderStepped:Connect(function()
 	local char = LocalPlayer.Character
 	if not char then return end
 	local root = char:FindFirstChild("HumanoidRootPart")
 	local humanoid = char:FindFirstChildOfClass("Humanoid")
 
-	-- 1. NoClip Global
-	if _G_NoClip and root then
+	-- 1. NoClip
+	if noclipActive and root then
 		for _, part in ipairs(char:GetDescendants()) do
 			if part:IsA("BasePart") and part.CanCollide then
 				part.CanCollide = false
@@ -67,18 +255,18 @@ RunService.RenderStepped:Connect(function()
 		end
 	end
 
-	-- 2. Anti-Morte / Imortalidade Suave
-	if _G_GodMode and humanoid then
+	-- 2. Anti-Morte
+	if godActive and humanoid then
 		if humanoid.Health < humanoid.MaxHealth then
 			humanoid.Health = humanoid.MaxHealth
 		end
-		if humanoid.PlatformStand and not _G_ChaosFly then
+		if humanoid.PlatformStand and not flyActive then
 			humanoid.PlatformStand = false
 		end
 	end
 
-	-- 3. Voo Caótico (Impossível de acertar golpes)
-	if _G_ChaosFly and root then
+	-- 3. Voo Caótico (Imprevisível para ninguém acertar golpes)
+	if flyActive and root then
 		local camCFrame = Camera.CFrame
 		local moveDirection = Vector3.new(0, 0, 0)
 
@@ -93,7 +281,6 @@ RunService.RenderStepped:Connect(function()
 			end
 			
 			chaosTick = chaosTick + 1
-			-- Trepidação e telemetria invisível para confundir a mira dos outros
 			local jitterX = math.sin(chaosTick * 1.8) * 1.5
 			local jitterY = math.cos(chaosTick * 2.2) * 0.9
 			local jitterZ = math.cos(chaosTick * 1.5) * 1.5
@@ -102,8 +289,8 @@ RunService.RenderStepped:Connect(function()
 		end
 	end
 
-	-- 4. Combo Automático (3 Hits + Tecla R)
-	if _G_AutoCombo then
+	-- 4. Combo Automático (3 Hits + R)
+	if comboActive then
 		comboStep = comboStep + 1
 		if comboStep == 30 then
 			pcall(function()
@@ -122,4 +309,4 @@ RunService.RenderStepped:Connect(function()
 	end
 end)
 
-return YHubFunctions
+print("[Y Hub] Painel Completo injetado com sucesso!")
