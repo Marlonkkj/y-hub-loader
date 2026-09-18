@@ -1,4 +1,4 @@
---// Y Hub Loader (Versão Ultra Rápida + Aproximação Colada 1.8 Studs)
+--// Y Hub Loader (Versão Ultrafast Attack + Stand Colado 0.8 Studs + Sem Teleport de Volta)
 local globalEnvironment = (getgenv and getgenv()) or _G
 local baseEnvironment = (getfenv and getfenv()) or _G
 local loaderConfig = globalEnvironment.YHubLoaderConfig
@@ -6,13 +6,12 @@ local loaderConfig = globalEnvironment.YHubLoaderConfig
 	or globalEnvironment.YAutoSignalLoaderConfig
 	or {}
 
---// 1. OTIMIZAÇÃO DE VELOCIDADE EXTREMA (Remoção de delays nos loops)
+--// 1. OTIMIZAÇÃO DE VELOCIDADE EXTREMA (Sem travamento de tempo)
 if not globalEnvironment.__AntiLagApplied then
 	globalEnvironment.__AntiLagApplied = true
 
 	local rawWait = task.wait
 	globalEnvironment.task.wait = function(seconds)
-		-- Sem limitação de tempo mínimo para permitir ataques na velocidade máxima do motor
 		return rawWait(seconds)
 	end
 
@@ -23,24 +22,24 @@ if not globalEnvironment.__AntiLagApplied then
 	end
 end
 
---// 2. LÓGICA DE APROXIMAÇÃO MÁXIMA (1.8 STUDS) E PRECISÃO
+--// 2. POSICIONAMENTO COLADO AO EXTREMO (0.8 STUDS)
 globalEnvironment.TargetPlayerName = globalEnvironment.TargetPlayerName or nil
 
--- Posicionamento colado nas costas a 1.8 studs (Alcance ideal de m3/m1 no Roblox)
+-- Calcula CFrame colado diretamente no inimigo sem recuo para o dono
 globalEnvironment.GetSafeStandPosition = function(targetCharacter, customDistance)
 	if not targetCharacter or not targetCharacter:FindFirstChild("HumanoidRootPart") then
 		return nil
 	end
 
 	local targetRoot = targetCharacter.HumanoidRootPart
-	-- Distância reduzida para 1.8 studs para colar totalmente no alvo
-	local distance = tonumber(customDistance) or 1.8
+	-- Distância de 0.8 studs (totalmente colado para não errar nenhum golpe)
+	local distance = tonumber(customDistance) or 0.8
 
 	local safeCFrame = targetRoot.CFrame * CFrame.new(0, 0, distance)
 	return CFrame.lookAt(safeCFrame.Position, targetRoot.Position)
 end
 
--- Busca o jogador focado
+-- Busca de alvo focado
 globalEnvironment.GetSpecificTarget = function(forcedName)
 	local Players = game:GetService("Players")
 	local targetName = forcedName or globalEnvironment.TargetPlayerName
@@ -62,17 +61,18 @@ globalEnvironment.GetSpecificTarget = function(forcedName)
 	return nil
 end
 
---// 3. EXECUÇÃO DE ATAQUE RÁPIDO (RenderStepped para taxa de atualização por FPS)
+--// 3. EXECUÇÃO DE ATAQUE ULTRA-RÁPIDO SEM RETORNO AO OWNER
 local RunService = game:GetService("RunService")
 local LocalPlayer = game:GetService("Players").LocalPlayer
 
 globalEnvironment.StartFastAttack = function()
 	if globalEnvironment.__FastAttackConn then return end
 
-	globalEnvironment.__FastAttackConn = RunService.RenderStepped:Connect(function()
+	-- Garante fixação no alvo antes e durante a simulação física
+	globalEnvironment.__FastAttackConn = RunService.Stepped:Connect(function()
 		local targetChar = globalEnvironment.GetSpecificTarget()
 		if targetChar and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-			local fastCF = globalEnvironment.GetSafeStandPosition(targetChar, 1.8)
+			local fastCF = globalEnvironment.GetSafeStandPosition(targetChar, 0.8)
 			if fastCF then
 				LocalPlayer.Character.HumanoidRootPart.CFrame = fastCF
 			end
@@ -87,19 +87,13 @@ globalEnvironment.StopFastAttack = function()
 	end
 end
 
--- Ativa o loop instantâneo
+-- Inicia o ciclo contínuo de ataque colado
 globalEnvironment.StartFastAttack()
 
---// 4. CONFIGURAÇÕES E VARIÁVEIS BASE DO FRAMEWORK
+--// 4. CONFIGURAÇÕES BASE DO FRAMEWORK
 local baseUrl = loaderConfig.BaseUrl or "https://raw.githubusercontent.com/GodErste/Y-Core/main/"
 local verbose = loaderConfig.Verbose == true
 local automaticCacheBust = tostring(math.floor(os.clock() * 1000000))
-
-local function releaseDiagnosticsEnabled()
-	return loaderConfig.ReleaseDiagnostics == true
-		or loaderConfig.BridgerReleaseDiagnostics == true
-		or loaderConfig.Verbose == true
-end
 
 local function getExecutorName()
 	local getter = identifyexecutor or getexecutorname
@@ -118,7 +112,7 @@ local function callable(callback)
 	if type(callback) == "function" then return callback end
 	if type(callback) == "table" then
 		return function(...)
-			local success, a, b = pcall(callback, ...)
+			local success, a = pcall(callback, ...)
 			return success and a or nil
 		end
 	end
