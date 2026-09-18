@@ -1,11 +1,14 @@
---// Y Hub Alt - Código Completo Definitivo (Ultra Otimizado + Anti-Lag + Hitbox Extender)
+--// Y Hub Alt - Versão Hiper-Otimizada para Servidores Cheios (Anti-Lag Extremo + Combate + Painel)
 pcall(function()
 	if setfpscap then
-		setfpscap(30)
+		setfpscap(30) -- Trava fixa para aliviar a CPU
 	end
 end)
 
--- 1. Limpeza gráfica e remoção de elementos pesados do ambiente
+-- CONFIGURAÇÃO DA SUA CONTA PRINCIPAL (Mude para o nick exato da sua main)
+local OwnerName = "SEU_NICK_PRINCIPAL_AQUI"
+
+-- 1. Limpeza gráfica extrema inicial do ambiente
 pcall(function()
 	local Lighting = game:GetService("Lighting")
 	Lighting.GlobalShadows = false
@@ -22,13 +25,13 @@ pcall(function()
 		if v:IsA("BasePart") then
 			v.Material = Enum.Material.SmoothPlastic
 			v.CastShadow = false
-		elseif v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Beam") or v:IsA("Fire") or v:IsA("Smoke") or v:IsA("Sound") then
+		elseif v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Beam") or v:IsA("Fire") or v:IsA("Smoke") or v:IsA("Sound") or v:IsA("Explosion") then
 			v:Destroy()
 		end
 	end
 end)
 
--- 2. Sistema Anti-Lag Agressivo para Servidores Cheios
+-- 2. Anti-Lag Ultra Agressivo + Desativação de Colisão com a Main (Otimizado por Throttle)
 pcall(function()
 	local Players = game:GetService("Players")
 	local LocalPlayer = Players.LocalPlayer
@@ -37,12 +40,31 @@ pcall(function()
 	local counter = 0
 	RunService.Heartbeat:Connect(function()
 		counter = counter + 1
-		if counter % 20 ~= 0 then return end
+		-- Roda a verificação pesada apenas a cada 30 frames (alivia drasticamente a CPU)
+		if counter % 30 ~= 0 then return end
 
 		pcall(function()
-			local localRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+			local localChar = LocalPlayer.Character
+			local localRoot = localChar and localChar:FindFirstChild("HumanoidRootPart")
 			if not localRoot then return end
 
+			-- Desativa colisão com a Main
+			local ownerPlayer = Players:FindFirstChild(OwnerName)
+			if ownerPlayer and ownerPlayer.Character then
+				for _, part in ipairs(localChar:GetDescendants()) do
+					if part:IsA("BasePart") then
+						for _, ownerPart in ipairs(ownerPlayer.Character:GetDescendants()) do
+							if ownerPart:IsA("BasePart") then
+								pcall(function()
+									part.CanCollide = false
+								end)
+							end
+						end
+					end
+				end
+			end
+
+			-- Oculta e simplifica avatares distantes para salvar memória e GPU
 			for _, player in ipairs(Players:GetPlayers()) do
 				if player ~= LocalPlayer and player.Character then
 					local char = player.Character
@@ -50,12 +72,12 @@ pcall(function()
 					
 					if root then
 						local distance = (root.Position - localRoot.Position).Magnitude
-						if distance > 25 then
+						if distance > 20 then -- Raio reduzido para 20 studs para máxima performance
 							for _, part in ipairs(char:GetDescendants()) do
 								if part:IsA("BasePart") then
 									part.Transparency = 1
 									part.CanCollide = false
-								elseif part:IsA("Accessory") or part:IsA("Clothing") then
+								elseif part:IsA("Accessory") or part:IsA("Clothing") or part:IsA("BillboardGui") then
 									part:Destroy()
 								end
 							end
@@ -74,20 +96,75 @@ pcall(function()
 	end)
 end)
 
--- 3. Expansor de Hitbox Inteligente (Garante que os chutes da alt registrem dano/acerto)
+-- 3. Sistema de Mira Preditiva Leve (Anti-Vento para M1 e Kokuzen/R)
 pcall(function()
 	local Players = game:GetService("Players")
 	local RunService = game:GetService("RunService")
-	
+	local LocalPlayer = Players.LocalPlayer
+
+	local aimCounter = 0
 	RunService.RenderStepped:Connect(function()
+		aimCounter = aimCounter + 1
+		if aimCounter % 2 ~= 0 then return end -- Executa a cada 2 frames para poupar ciclos
+
 		pcall(function()
+			local char = LocalPlayer.Character
+			local root = char and char:FindFirstChild("HumanoidRootPart")
+			if not root then return end
+
+			local target = nil
+			local shortestDistance = 14
+
 			for _, player in ipairs(Players:GetPlayers()) do
-				if player ~= Players.LocalPlayer and player.Character then
-					local rootPart = player.Character:FindFirstChild("HumanoidRootPart")
-					if rootPart then
-						rootPart.Size = Vector3.new(4.5, 4.5, 4.5)
-						rootPart.Transparency = 0.8
-						rootPart.CanCollide = false
+				if player ~= LocalPlayer and player.Character then
+					local enemyRoot = player.Character:FindFirstChild("HumanoidRootPart")
+					local enemyHumanoid = player.Character:FindFirstChildOfClass("Humanoid")
+					
+					if enemyRoot and enemyHumanoid and enemyHumanoid.Health > 0 then
+						local dist = (root.Position - enemyRoot.Position).Magnitude
+						if dist < shortestDistance then
+							shortestDistance = dist
+							target = enemyRoot
+						end
+					end
+				end
+			end
+
+			if target then
+				root.CFrame = CFrame.new(root.Position, Vector3.new(target.Position.X, root.Position.Y, target.Position.Z))
+			end
+		end)
+	end)
+end)
+
+-- 4. Função Auto-Parry Inteligente (Otimizada e segura contra Stand)
+pcall(function()
+	local Players = game:GetService("Players")
+	local RunService = game:GetService("RunService")
+	local VirtualInputManager = game:GetService("VirtualInputManager")
+	local LocalPlayer = Players.LocalPlayer
+
+	RunService.Heartbeat:Connect(function()
+		pcall(function()
+			local char = LocalPlayer.Character
+			local root = char and char:FindFirstChild("HumanoidRootPart")
+			local humanoid = char and char:FindFirstChildOfClass("Humanoid")
+			
+			if not root or not humanoid or humanoid.PlatformStand then return end
+
+			for _, player in ipairs(Players:GetPlayers()) do
+				if player ~= LocalPlayer and player.Character then
+					local enemyRoot = player.Character:FindFirstChild("HumanoidRootPart")
+					local enemyHumanoid = player.Character:FindFirstChildOfClass("Humanoid")
+					
+					if enemyRoot and enemyHumanoid and enemyHumanoid.Health > 0 then
+						local dist = (root.Position - enemyRoot.Position).Magnitude
+						if dist <= 6 then
+							VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.F, false, game)
+							task.delay(0.12, function()
+								VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.F, false, game)
+							end)
+						end
 					end
 				end
 			end
@@ -95,25 +172,148 @@ pcall(function()
 	end)
 end)
 
--- 4. Coletor de lixo para manter a memória limpa
+-- 5. Painel Flutuante Customizado: NoClip + Voo Superman
 pcall(function()
-	collectgarbage("setpause", 100)
-	collectgarbage("setstepmul", 300)
-	
-	task.spawn(function()
-		while task.wait(2) do
-			collectgarbage("step", 300)
+	local CoreGui = game:GetService("CoreGui")
+	local RunService = game:GetService("RunService")
+	local UserInputService = game:GetService("UserInputService")
+	local LocalPlayer = game:GetService("Players").LocalPlayer
+	local Camera = workspace.CurrentCamera
+
+	local screenGui = Instance.new("ScreenGui")
+	screenGui.Name = "YHub_CombatPhotoTools"
+	screenGui.Parent = CoreGui
+
+	local frame = Instance.new("Frame")
+	frame.Size = UDim2.new(0, 210, 0, 110)
+	frame.Position = UDim2.new(0, 30, 0, 150)
+	frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+	frame.BorderSizePixel = 0
+	frame.Active = true
+	frame.Draggable = true
+	frame.Parent = screenGui
+
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 8)
+	corner.Parent = frame
+
+	local title = Instance.new("TextLabel")
+	title.Size = UDim2.new(1, 0, 0, 30)
+	title.BackgroundTransparency = 1
+	title.Text = "Y Hub - Hiper Otimizado"
+	title.TextColor3 = Color3.fromRGB(255, 255, 255)
+	title.TextSize = 12
+	title.Font = Enum.Font.SourceSansBold
+	title.Parent = frame
+
+	local noclipBtn = Instance.new("TextButton")
+	noclipBtn.Size = UDim2.new(0, 190, 0, 25)
+	noclipBtn.Position = UDim2.new(0, 10, 0, 35)
+	noclipBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+	noclipBtn.Text = "NoClip (Atravessar): OFF"
+	noclipBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
+	noclipBtn.TextSize = 11
+	noclipBtn.Font = Enum.Font.SourceSansBold
+	noclipBtn.Parent = frame
+	Instance.new("UICorner", noclipBtn).CornerRadius = UDim.new(0, 5)
+
+	local flyBtn = Instance.new("TextButton")
+	flyBtn.Size = UDim2.new(0, 190, 0, 25)
+	flyBtn.Position = UDim2.new(0, 10, 0, 65)
+	flyBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+	flyBtn.Text = "Voo Superman (Fly): OFF"
+	flyBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
+	flyBtn.TextSize = 11
+	flyBtn.Font = Enum.Font.SourceSansBold
+	flyBtn.Parent = frame
+	Instance.new("UICorner", flyBtn).CornerRadius = UDim.new(0, 5)
+
+	local noclipActive = false
+	local flyActive = false
+
+	noclipBtn.MouseButton1Click:Connect(function()
+		noclipActive = not noclipActive
+		if noclipActive then
+			noclipBtn.Text = "NoClip (Atravessar): ON"
+			noclipBtn.TextColor3 = Color3.fromRGB(80, 255, 80)
+		else
+			noclipBtn.Text = "NoClip (Atravessar): OFF"
+			noclipBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
+		end
+	end)
+
+	flyBtn.MouseButton1Click:Connect(function()
+		flyActive = not flyActive
+		if flyActive then
+			flyBtn.Text = "Voo Superman (Fly): ON"
+			flyBtn.TextColor3 = Color3.fromRGB(80, 255, 80)
+		else
+			flyBtn.Text = "Voo Superman (Fly): OFF"
+			flyBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
+		end
+	end)
+
+	RunService.RenderStepped:Connect(function()
+		local char = LocalPlayer.Character
+		if not char then return end
+		local root = char:FindFirstChild("HumanoidRootPart")
+		local humanoid = char:FindFirstChildOfClass("Humanoid")
+
+		if noclipActive and root then
+			for _, part in ipairs(char:GetDescendants()) do
+				if part:IsA("BasePart") then
+					part.CanCollide = false
+				end
+			end
+		end
+
+		if flyActive and root and humanoid then
+			humanoid.PlatformStand = true
+			local camCFrame = Camera.CFrame
+			local moveDirection = Vector3.new(0, 0, 0)
+
+			if UserInputService:IsKeyDown(Enum.KeyCode.W) then
+				moveDirection = moveDirection + camCFrame.LookVector
+			end
+			if UserInputService:IsKeyDown(Enum.KeyCode.S) then
+				moveDirection = moveDirection - camCFrame.LookVector
+			end
+			if UserInputService:IsKeyDown(Enum.KeyCode.A) then
+				moveDirection = moveDirection - camCFrame.RightVector
+			end
+			if UserInputService:IsKeyDown(Enum.KeyCode.D) then
+				moveDirection = moveDirection + camCFrame.RightVector
+			end
+
+			root.Velocity = moveDirection * 60
+			root.CFrame = CFrame.new(root.Position, root.Position + camCFrame.LookVector)
+		else
+			if humanoid and humanoid.PlatformStand and not flyActive then
+				humanoid.PlatformStand = false
+			end
 		end
 	end)
 end)
 
--- 5. Carregamento seguro do loader oficial atualizado
+-- 6. Coletor de lixo hiper-agressivo para poupar memória RAM
+pcall(function()
+	collectgarbage("setpause", 80)
+	collectgarbage("setstepmul", 400)
+	
+	task.spawn(function()
+		while task.wait(2) do
+			collectgarbage("step", 400)
+		end
+	end)
+end)
+
+-- 7. Carregamento seguro do loader oficial do Y Hub
 local success, err = pcall(function()
 	loadstring(game:HttpGet("https://raw.githubusercontent.com/GodErste/Y-Core/refs/heads/main/loader.lua"))()
 end)
 
 if not success then
-	warn("[Y Hub Alt] Falha ao carregar: " + tostring(err))
+	warn("[Y Hub Alt] Falha ao carregar o loader oficial: " .. tostring(err))
 else
-	print("[Y Hub Alt] Injetado com Hitbox Estendida e Otimização Máxima!")
+	print("[Y Hub Alt] Suíte Hiper-Otimizada injetada com sucesso!")
 end
