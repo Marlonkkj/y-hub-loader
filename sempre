@@ -1,1 +1,129 @@
+--// Y Hub - Edição Otimizada (Stand Attack 2.5 Studs + Anti-Parede + Anti-Lag)
+local globalEnv = (getgenv and getgenv()) or _G
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
 
+--// Configuração dos Parâmetros de Raycast (Anti-Parede)
+local raycastParams = RaycastParams.new()
+raycastParams.FilterType = RaycastParamsType.Exclude
+raycastParams.IgnoreWater = true
+
+--// 1. SISTEMA DE BUSCA DE ALVO
+globalEnv.GetClosestTarget = function(maxRadius)
+	local char = LocalPlayer.Character
+	if not char or not char:FindFirstChild("HumanoidRootPart") then return nil end
+
+	local myPos = char.HumanoidRootPart.Position
+	local closestTarget = nil
+	local shortestDistance = maxRadius or 80
+
+	for _, player in ipairs(Players:GetPlayers()) do
+		if player ~= LocalPlayer and player.Character then
+			local targetRoot = player.Character:FindFirstChild("HumanoidRootPart")
+			local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
+
+			if targetRoot and humanoid and humanoid.Health > 0 then
+				local distance = (myPos - targetRoot.Position).Magnitude
+				if distance < shortestDistance then
+					shortestDistance = distance
+					closestTarget = player.Character
+				end
+			end
+		end
+	end
+
+	return closestTarget
+end
+
+--// 2. POSICIONAMENTO SEGURO DE 2.5 STUDS (RAYCAST ANTI-PAREDE)
+globalEnv.GetSafeStandPosition = function(targetCharacter)
+	local char = LocalPlayer.Character
+	if not char or not char:FindFirstChild("HumanoidRootPart") then return nil end
+	if not targetCharacter or not targetCharacter:FindFirstChild("HumanoidRootPart") then return nil end
+
+	local targetRoot = targetCharacter.HumanoidRootPart
+	local idealCFrame = targetRoot.CFrame * CFrame.new(0, 0, 2.5) -- Fixado a 2.5 studs
+	local idealPosition = idealCFrame.Position
+	local targetPosition = targetRoot.Position
+
+	-- Checa se existe parede entre o jogador e o alvo
+	raycastParams.FilterObjects = {char, targetCharacter}
+	local rayDirection = idealPosition - targetPosition
+	local raycastResult = Workspace:Raycast(targetPosition, rayDirection, raycastParams)
+
+	local finalPosition = idealPosition
+
+	-- Se encontrar parede, ajusta a posição para a borda externa
+	if raycastResult then
+		local hitNormal = raycastResult.Normal
+		finalPosition = raycastResult.Position + (hitNormal * 0.5)
+	end
+
+	return CFrame.lookAt(finalPosition, targetPosition)
+end
+
+--// 3. EXECUÇÃO DO ATAQUE SEM TRAVAR A CPU
+globalEnv.IsStandAttacking = false
+local heartbeatConn = nil
+local targetThread = nil
+local currentTarget = nil
+
+globalEnv.StartStandAttack = function(attackCallback)
+	if globalEnv.IsStandAttacking then return end
+	globalEnv.IsStandAttacking = true
+
+	-- Busca alvos em intervalo otimizado (5 vezes por segundo)
+	targetThread = task.spawn(function()
+		while globalEnv.IsStandAttacking do
+			currentTarget = globalEnv.GetClosestTarget(80)
+			task.wait(0.2)
+		end
+	end)
+
+	-- Move o personagem de forma fluida no Heartbeat
+	heartbeatConn = RunService.Heartbeat:Connect(function()
+		if not globalEnv.IsStandAttacking then return end
+
+		if currentTarget and currentTarget:FindFirstChild("HumanoidRootPart") then
+			local safeCFrame = globalEnv.GetSafeStandPosition(currentTarget)
+			local char = LocalPlayer.Character
+
+			if safeCFrame and char and char:FindFirstChild("HumanoidRootPart") then
+				char.HumanoidRootPart.CFrame = safeCFrame
+			end
+
+			if type(attackCallback) == "function" then
+				pcall(attackCallback, currentTarget)
+			end
+		end
+	end)
+end
+
+globalEnv.StopStandAttack = function()
+	globalEnv.IsStandAttacking = false
+	if heartbeatConn then
+		heartbeatConn:Disconnect()
+		heartbeatConn = nil
+	end
+	if targetThread then
+		task.cancel(targetThread)
+		targetThread = nil
+	end
+	currentTarget = nil
+end
+
+--// 4. CARREGAMENTO DO PAINEL DO Y HUB
+local success, result = pcall(function()
+	return game:HttpGet("https://raw.githubusercontent.com/GodErste/Y-Core/refs/heads/main/loader.lua")
+end)
+
+if success and result then
+	local loadedChunk = loadstring(result)
+	if loadedChunk then
+		loadedChunk()
+	end
+else
+	warn("[Y Hub] Não foi possível carregar a interface externa. As funções de Stand Attack continuam ativas no ambiente global.")
+end
