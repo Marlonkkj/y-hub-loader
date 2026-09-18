@@ -1,11 +1,11 @@
---// Y Hub Alt - Código Completo Final (Otimizado + Anti-Servidor Cheio + Loader)
+--// Y Hub Alt - Código Completo Definitivo (Ultra Otimizado + Anti-Lag + Hitbox Extender)
 pcall(function()
 	if setfpscap then
-		setfpscap(30) -- Trava o FPS da alt para aliviar totalmente a CPU
+		setfpscap(30)
 	end
 end)
 
--- 1. Otimização gráfica para a alt rodar sem engasgar
+-- 1. Limpeza gráfica e remoção de elementos pesados do ambiente
 pcall(function()
 	local Lighting = game:GetService("Lighting")
 	Lighting.GlobalShadows = false
@@ -13,7 +13,7 @@ pcall(function()
 	Lighting.Technology = Enum.Technology.Compatibility
 	
 	for _, v in ipairs(Lighting:GetChildren()) do
-		if v:IsA("PostEffect") or v:IsA("BlurEffect") or v:IsA("SunRaysEffect") then
+		if v:IsA("PostEffect") or v:IsA("BlurEffect") or v:IsA("SunRaysEffect") or v:IsA("Atmosphere") then
 			v.Enabled = false
 		end
 	end
@@ -22,34 +22,48 @@ pcall(function()
 		if v:IsA("BasePart") then
 			v.Material = Enum.Material.SmoothPlastic
 			v.CastShadow = false
-		elseif v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Beam") or v:IsA("Fire") or v:IsA("Smoke") then
+		elseif v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Beam") or v:IsA("Fire") or v:IsA("Smoke") or v:IsA("Sound") then
 			v:Destroy()
 		end
 	end
 end)
 
--- 2. Otimizador de Servidor Cheio: Remove renderização de acessórios de outros players distantes
+-- 2. Sistema Anti-Lag Agressivo para Servidores Cheios
 pcall(function()
 	local Players = game:GetService("Players")
 	local LocalPlayer = Players.LocalPlayer
 	local RunService = game:GetService("RunService")
 
-	RunService.Stepped:Connect(function()
+	local counter = 0
+	RunService.Heartbeat:Connect(function()
+		counter = counter + 1
+		if counter % 20 ~= 0 then return end
+
 		pcall(function()
+			local localRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+			if not localRoot then return end
+
 			for _, player in ipairs(Players:GetPlayers()) do
 				if player ~= LocalPlayer and player.Character then
 					local char = player.Character
 					local root = char:FindFirstChild("HumanoidRootPart")
-					local localRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
 					
-					if root and localRoot then
+					if root then
 						local distance = (root.Position - localRoot.Position).Magnitude
-						-- Se o player estiver a mais de 35 studs, esconde acessórios pesados para poupar FPS
-						if distance > 35 then
+						if distance > 25 then
 							for _, part in ipairs(char:GetDescendants()) do
-								if part:IsA("Accessory") or part:IsA("Clothing") then
-									local handle = part:FindFirstChild("Handle")
-									if handle then handle.Transparency = 1 end
+								if part:IsA("BasePart") then
+									part.Transparency = 1
+									part.CanCollide = false
+								elseif part:IsA("Accessory") or part:IsA("Clothing") then
+									part:Destroy()
+								end
+							end
+						else
+							for _, part in ipairs(char:GetDescendants()) do
+								if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" and part.Transparency == 1 then
+									part.Transparency = 0
+									part.CanCollide = true
 								end
 							end
 						end
@@ -60,25 +74,46 @@ pcall(function()
 	end)
 end)
 
--- 3. Coletor de lixo agressivo para evitar vazamento de memória na alt
+-- 3. Expansor de Hitbox Inteligente (Garante que os chutes da alt registrem dano/acerto)
 pcall(function()
-	collectgarbage("setpause", 150)
-	collectgarbage("setstepmul", 200)
+	local Players = game:GetService("Players")
+	local RunService = game:GetService("RunService")
+	
+	RunService.RenderStepped:Connect(function()
+		pcall(function()
+			for _, player in ipairs(Players:GetPlayers()) do
+				if player ~= Players.LocalPlayer and player.Character then
+					local rootPart = player.Character:FindFirstChild("HumanoidRootPart")
+					if rootPart then
+						rootPart.Size = Vector3.new(4.5, 4.5, 4.5)
+						rootPart.Transparency = 0.8
+						rootPart.CanCollide = false
+					end
+				end
+			end
+		end)
+	end)
+end)
+
+-- 4. Coletor de lixo para manter a memória limpa
+pcall(function()
+	collectgarbage("setpause", 100)
+	collectgarbage("setstepmul", 300)
 	
 	task.spawn(function()
-		while task.wait(5) do
-			collectgarbage("step", 150)
+		while task.wait(2) do
+			collectgarbage("step", 300)
 		end
 	end)
 end)
 
--- 4. Carregamento seguro do loader oficial com o link atualizado
+-- 5. Carregamento seguro do loader oficial atualizado
 local success, err = pcall(function()
 	loadstring(game:HttpGet("https://raw.githubusercontent.com/GodErste/Y-Core/refs/heads/main/loader.lua"))()
 end)
 
 if not success then
-	warn("[Y Hub Alt] Falha ao carregar: " .. tostring(err))
+	warn("[Y Hub Alt] Falha ao carregar: " + tostring(err))
 else
-	print("[Y Hub Alt] Injetado com sucesso, otimizado e protegido contra servidor cheio!")
+	print("[Y Hub Alt] Injetado com Hitbox Estendida e Otimização Máxima!")
 end
