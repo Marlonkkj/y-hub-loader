@@ -1,4 +1,4 @@
---// Y Hub Alt - Voo CFrame Absoluto (Sem Queda e Sem Parry)
+--// Y Hub Alt - Voo Superman Definitivo (Barriga para Baixo Correta)
 pcall(function()
 	if setfpscap then
 		setfpscap(30)
@@ -50,7 +50,7 @@ pcall(function()
 	end)
 end)
 
--- 3. Painel Flutuante com Voo CFrame Perfeito (Zero Queda)
+-- 3. Painel Flutuante com Voo Superman Perfeito
 pcall(function()
 	local CoreGui = game:GetService("CoreGui")
 	local RunService = game:GetService("RunService")
@@ -59,7 +59,7 @@ pcall(function()
 	local Camera = workspace.CurrentCamera
 
 	local screenGui = Instance.new("ScreenGui")
-	screenGui.Name = "YHub_CFrameFly"
+	screenGui.Name = "YHub_SupermanFinal"
 	screenGui.Parent = CoreGui
 
 	local frame = Instance.new("Frame")
@@ -78,7 +78,7 @@ pcall(function()
 	local title = Instance.new("TextLabel")
 	title.Size = UDim2.new(1, -40, 0, 30)
 	title.BackgroundTransparency = 1
-	title.Text = "Y Hub - Voo Estável"
+	title.Text = "Y Hub - Voo Superman Real"
 	title.TextColor3 = Color3.fromRGB(255, 255, 255)
 	title.TextSize = 11
 	title.Font = Enum.Font.SourceSansBold
@@ -110,7 +110,7 @@ pcall(function()
 	flyBtn.Size = UDim2.new(0, 190, 0, 25)
 	flyBtn.Position = UDim2.new(0, 10, 0, 65)
 	flyBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-	flyBtn.Text = "Voo Estável: OFF"
+	flyBtn.Text = "Voo Superman: OFF"
 	flyBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
 	flyBtn.TextSize = 11
 	flyBtn.Font = Enum.Font.SourceSansBold
@@ -155,7 +155,7 @@ pcall(function()
 		local humanoid = char and char:FindFirstChildOfClass("Humanoid")
 
 		if flyActive then
-			flyBtn.Text = "Voo Estável: ON"
+			flyBtn.Text = "Voo Superman: ON"
 			flyBtn.TextColor3 = Color3.fromRGB(80, 255, 80)
 			if root then
 				currentPos = root.CFrame
@@ -165,7 +165,7 @@ pcall(function()
 				humanoid.PlatformStand = true
 			end
 		else
-			flyBtn.Text = "Voo Estável: OFF"
+			flyBtn.Text = "Voo Superman: OFF"
 			flyBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
 			if root then
 				root.Anchored = false
@@ -208,10 +208,10 @@ pcall(function()
 
 			if currentPos then
 				if moveDirection.Magnitude > 0 then
-					currentPos = currentPos + (moveDirection.Unit * 1.2)
+					currentPos = currentPos + (moveDirection.Unit * 1.4)
 				end
-				-- Trava a posição horizontal certinha com a câmera apontada pra frente
-				root.CFrame = currentPos - Vector3.new(0, 0.5, 0) + camCFrame.LookVector * 0.01
+				-- Alinhamento perfeito: peito para baixo, cabeça na direção da câmera
+				root.CFrame = CFrame.new(currentPos.Position) * camCFrame.Rotation * CFrame.Angles(math.rad(90), 0, 0)
 			end
 		end
 	end)
@@ -223,4 +223,4 @@ pcall(function()
 	loadstring(game:HttpGet("https://github.com/GodErste/Y-Core/raw/main/loader.lua"))()
 end)
 
-print("[Y Hub Alt] Voo CFrame sem quedas aplicado!")
+print("[Y Hub Alt] Voo Superman Definitivo aplicado!")
