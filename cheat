@@ -1,14 +1,14 @@
---// Y Hub Alt - Voo Superman com Velocidade e Atalho de Tecla (Insert)
+--// Y Hub Alt - Voo Superman + Otimização de Personagens + Menu Único na Tecla Delete
 pcall(function()
 	if setfpscap then
-		setfpscap(30)
+		setfpscap(60)
 	end
 end)
 
 -- CONFIGURAÇÃO DA SUA CONTA PRINCIPAL (Mude para o nick exato da sua main)
 local OwnerName = "SEU_NICK_PRINCIPAL_AQUI"
 
--- 1. Limpeza gráfica inicial
+-- 1. Otimização Agressiva de Ambiente, Texturas e Personagens (Anti-Lag Máximo)
 pcall(function()
 	local Lighting = game:GetService("Lighting")
 	Lighting.GlobalShadows = false
@@ -16,10 +16,58 @@ pcall(function()
 	Lighting.Technology = Enum.Technology.Compatibility
 	
 	for _, v in ipairs(Lighting:GetChildren()) do
-		if v:IsA("PostEffect") or v:IsA("BlurEffect") or v:IsA("SunRaysEffect") or v:IsA("Atmosphere") then
-			v.Enabled = false
+		if v:IsA("PostEffect") or v:IsA("BlurEffect") or v:IsA("SunRaysEffect") or v:IsA("Atmosphere") or v:IsA("ColorCorrectionEffect") then
+			v:Destroy()
 		end
 	end
+
+	local function optimizeCharacter(char)
+		pcall(function()
+			for _, part in ipairs(char:GetDescendants()) do
+				if part:IsA("BasePart") then
+					part.Material = Enum.Material.SmoothPlastic
+					part.Reflectance = 0
+					part.Color = Color3.fromRGB(180, 180, 180)
+				elseif part:IsA("Accessory") or part:IsA("Clothing") or part:IsA("Shirt") or part:IsA("Pants") or part:IsA("CharacterMesh") then
+					part:Destroy()
+				elseif part:IsA("ParticleEmitter") or part:IsA("Trail") then
+					part.Enabled = false
+				end
+			end
+		end)
+	end
+
+	for _, obj in ipairs(workspace:GetDescendants()) do
+		pcall(function()
+			if obj:IsA("BasePart") then
+				obj.Material = Enum.Material.SmoothPlastic
+				obj.Reflectance = 0
+				obj.Color = Color3.fromRGB(150, 150, 150)
+			elseif obj:IsA("Decal") or obj:IsA("Texture") then
+				obj:Destroy()
+			elseif obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Fire") or obj:IsA("Smoke") or obj:IsA("Sparkles") then
+				obj.Enabled = false
+			elseif obj:IsA("Model") and obj:FindFirstChildOfClass("Humanoid") then
+				optimizeCharacter(obj)
+			end
+		end)
+	end
+
+	workspace.DescendantAdded:Connect(function(obj)
+		pcall(function()
+			if obj:IsA("BasePart") then
+				obj.Material = Enum.Material.SmoothPlastic
+				obj.Reflectance = 0
+				obj.Color = Color3.fromRGB(150, 150, 150)
+			elseif obj:IsA("Decal") or obj:IsA("Texture") then
+				obj:Destroy()
+			elseif obj:IsA("ParticleEmitter") or obj:IsA("Trail") then
+				obj.Enabled = false
+			elseif obj:IsA("Model") and obj:FindFirstChildOfClass("Humanoid") then
+				optimizeCharacter(obj)
+			end
+		end)
+	end)
 end)
 
 -- 2. Anti-Lag e Desativação de Colisão com a Main
@@ -50,7 +98,7 @@ pcall(function()
 	end)
 end)
 
--- 3. Painel Flutuante com Atalho de Tecla (Insert)
+-- 3. Painel Flutuante com Atalho de Tecla (Delete)
 pcall(function()
 	local CoreGui = game:GetService("CoreGui")
 	local RunService = game:GetService("RunService")
@@ -78,7 +126,7 @@ pcall(function()
 	local title = Instance.new("TextLabel")
 	title.Size = UDim2.new(1, -40, 0, 30)
 	title.BackgroundTransparency = 1
-	title.Text = "Y Hub - [Insert] p/ Fechar"
+	title.Text = "Y Hub - [Delete] p/ Fechar"
 	title.TextColor3 = Color3.fromRGB(200, 200, 200)
 	title.TextSize = 10
 	title.Font = Enum.Font.SourceSansBold
@@ -157,9 +205,9 @@ pcall(function()
 	local currentPos = nil
 	local flySpeed = 1.4
 
-	-- Atalho de teclado para esconder/mostrar o menu (Tecla Insert)
+	-- Atalho de teclado para esconder/mostrar o painel inteiro (Tecla Delete)
 	UserInputService.InputBegan:Connect(function(input, gameProcessed)
-		if input.KeyCode == Enum.KeyCode.Insert then
+		if input.KeyCode == Enum.KeyCode.Delete then
 			isHidden = not isHidden
 			frame.Visible = not isHidden
 		end
@@ -241,9 +289,12 @@ pcall(function()
 		local root = char:FindFirstChild("HumanoidRootPart")
 
 		if noclipActive and root then
-			for _, part in ipairs(char:GetDescendants()) do
-				if part:IsA("BasePart") then
-					part.CanCollide = false
+			local localChar = LocalPlayer.Character
+			if localChar then
+				for _, part in ipairs(localChar:GetDescendants()) do
+					if part:IsA("BasePart") then
+						part.CanCollide = false
+					end
 				end
 			end
 		end
@@ -281,4 +332,4 @@ pcall(function()
 	loadstring(game:HttpGet("https://github.com/GodErste/Y-Core/raw/main/loader.lua"))()
 end)
 
-print("[Y Hub Alt] Voo com atalho Insert aplicado com sucesso!")
+print("[Y Hub Alt] Painel completo configurado com a tecla Delete!")
