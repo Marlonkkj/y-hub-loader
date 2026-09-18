@@ -1,1 +1,561 @@
+--// Y Hub Loader (Versão Completa, Corrigida e Funcional)
+local globalEnvironment = (getgenv and getgenv()) or _G
+local baseEnvironment = (getfenv and getfenv()) or _G
+local loaderConfig = globalEnvironment.YHubLoaderConfig
+	or globalEnvironment.YCoreLoaderConfig
+	or globalEnvironment.YAutoSignalLoaderConfig
+	or {}
 
+--// 1. TRAVA GLOBAL ANTI-LAG (Garante respiro de CPU para o Roblox)
+if not globalEnvironment.__AntiLagApplied then
+	globalEnvironment.__AntiLagApplied = true
+
+	local rawWait = task.wait
+	globalEnvironment.task.wait = function(seconds)
+		local sec = tonumber(seconds) or 0
+		return rawWait(math.max(sec, 0.03))
+	end
+
+	if type(globalEnvironment.wait) == "function" then
+		globalEnvironment.wait = function(seconds)
+			local sec = tonumber(seconds) or 0
+			return rawWait(math.max(sec, 0.03))
+		end
+	end
+end
+
+--// 2. SISTEMA DE COMBATE SEM LAG E ANTI-PAREDE (RAYCAST + TARGETING)
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+local LocalPlayer = Players.LocalPlayer
+
+local raycastParams = RaycastParams.new()
+raycastParams.FilterType = RaycastParamsType.Exclude
+raycastParams.IgnoreWater = true
+
+-- Busca apenas o inimigo vivo mais próximo (evita ir em pessoas aleatórias)
+globalEnvironment.GetClosestTarget = function(maxRadius)
+	local myCharacter = LocalPlayer.Character
+	if not myCharacter or not myCharacter:FindFirstChild("HumanoidRootPart") then return nil end
+
+	local myPos = myCharacter.HumanoidRootPart.Position
+	local closestTarget = nil
+	local shortestDistance = maxRadius or 80
+
+	for _, player in ipairs(Players:GetPlayers()) do
+		if player ~= LocalPlayer and player.Character then
+			local targetRoot = player.Character:FindFirstChild("HumanoidRootPart")
+			local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
+
+			if targetRoot and humanoid and humanoid.Health > 0 then
+				local distance = (myPos - targetRoot.Position).Magnitude
+				if distance < shortestDistance then
+					shortestDistance = distance
+					closestTarget = player.Character
+				end
+			end
+		end
+	end
+
+	return closestTarget
+end
+
+-- Calcula a posição gruda no inimigo (2.5 studs) sem entrar em paredes
+globalEnvironment.GetSafeStandPosition = function(targetCharacter)
+	local myCharacter = LocalPlayer.Character
+	if not myCharacter or not myCharacter:FindFirstChild("HumanoidRootPart") then return nil end
+	if not targetCharacter or not targetCharacter:FindFirstChild("HumanoidRootPart") then return nil end
+
+	local targetRoot = targetCharacter.HumanoidRootPart
+	local idealCFrame = targetRoot.CFrame * CFrame.new(0, 0, 2.5) -- Distância perfeita para não errar o golpe
+	local idealPosition = idealCFrame.Position
+	local targetPosition = targetRoot.Position
+
+	-- Raycast para checar paredes no caminho
+	raycastParams.FilterObjects = {myCharacter, targetCharacter}
+	local rayDirection = idealPosition - targetPosition
+	local raycastResult = Workspace:Raycast(targetPosition, rayDirection, raycastParams)
+
+	local finalPosition = idealPosition
+
+	-- Se houver parede, ajusta para ficar na borda externa da parede
+	if raycastResult then
+		local hitNormal = raycastResult.Normal
+		finalPosition = raycastResult.Position + (hitNormal * 0.5)
+	end
+
+	return CFrame.lookAt(finalPosition, targetPosition)
+end
+
+-- Teleporta de forma segura e precisa
+globalEnvironment.StickToTargetSafe = function(targetCharacter)
+	local safeCFrame = globalEnvironment.GetSafeStandPosition(targetCharacter)
+	local myCharacter = LocalPlayer.Character
+
+	if safeCFrame and myCharacter and myCharacter:FindFirstChild("HumanoidRootPart") then
+		myCharacter.HumanoidRootPart.CFrame = safeCFrame
+	end
+end
+
+-- Executa o Stand Attack em thread separada para NÃO TRAVAR o jogo
+globalEnvironment.IsStandAttacking = false
+globalEnvironment.SafeStandAttack = function(attackCallback)
+	if globalEnvironment.IsStandAttacking then return end
+	globalEnvironment.IsStandAttacking = true
+
+	task.spawn(function()
+		while globalEnvironment.IsStandAttacking do
+			local target = globalEnvironment.GetClosestTarget(80)
+
+			if target then
+				globalEnvironment.StickToTargetSafe(target)
+
+				if type(attackCallback) == "function" then
+					pcall(attackCallback, target)
+				end
+			end
+
+			-- Intervalo seguro que impede o travamento da CPU/GPU
+			task.wait(0.03)
+		end
+	end)
+end
+
+globalEnvironment.StopStandAttack = function()
+	globalEnvironment.IsStandAttacking = false
+end
+
+--// 3. CONFIGURAÇÕES E VARIÁVEIS BASE DO FRAMEWORK
+local baseUrl = loaderConfig.BaseUrl or "https://raw.githubusercontent.com/GodErste/Y-Core/main/"
+local verbose = loaderConfig.Verbose == true
+local automaticCacheBust = tostring(math.floor(os.clock() * 1000000))
+
+local function releaseDiagnosticsEnabled()
+	return loaderConfig.ReleaseDiagnostics == true
+		or loaderConfig.BridgerReleaseDiagnostics == true
+		or loaderConfig.Verbose == true
+end
+
+local function getExecutorName()
+	local getter = nil
+
+	if type(identifyexecutor) == "function" then
+		getter = identifyexecutor
+	elseif type(getexecutorname) == "function" then
+		getter = getexecutorname
+	end
+
+	if type(getter) ~= "function" then
+		return ""
+	end
+
+	local success, name = pcall(getter)
+	return success and tostring(name or "") or ""
+end
+
+local detectedExecutorName = getExecutorName()
+
+local function isPotassiumExecutor()
+	return string.find(string.lower(detectedExecutorName), "potassium", 1, true) ~= nil
+end
+
+local function callable(callback)
+	if type(callback) == "function" then
+		return callback
+	end
+
+	if type(callback) == "table" then
+		local target = callback
+		local failed = false
+
+		return function(...)
+			if failed then
+				return nil
+			end
+
+			local success, first, second, third, fourth, fifth, sixth, seventh, eighth = pcall(target, ...)
+			if not success then
+				failed = true
+				return nil
+			end
+
+			return first, second, third, fourth, fifth, sixth, seventh, eighth
+		end
+	end
+
+	return function() end
+end
+
+local function identity(callback)
+	return callable(callback)
+end
+
+local function attribute()
+	return nil
+end
+
+local function ensureFunction(environment, name, fallback)
+	if type(environment[name]) ~= "function" then
+		environment[name] = fallback
+	end
+
+	return environment[name]
+end
+
+local function shouldInstallNewcclosureCompatibility()
+	if loaderConfig.DisableNewcclosureCompat == true then
+		return false, "disabled-config"
+	end
+
+	if loaderConfig.EnableNewcclosureCompat == true then
+		return true, "enabled-config"
+	end
+
+	if isPotassiumExecutor() then
+		return false, "potassium"
+	end
+
+	return true, "default"
+end
+
+local function installNewcclosureCompatibility()
+	local key = "__YHubNewcclosureCompat"
+	local state = rawget(globalEnvironment, key) or rawget(baseEnvironment, key)
+	local native = type(state) == "table" and type(state.Native) == "function" and state.Native or nil
+
+	if type(native) ~= "function" and type(newcclosure) == "function" then
+		native = newcclosure
+	end
+
+	if type(native) ~= "function" then
+		return
+	end
+
+	local proxy = function(callback)
+		local normalized = callable(callback)
+		local success, closure = pcall(native, normalized)
+
+		if success and type(closure) == "function" then
+			return closure
+		end
+
+		return normalized
+	end
+
+	state = {
+		Native = native,
+		Proxy = proxy,
+	}
+
+	pcall(function()
+		globalEnvironment[key] = state
+		globalEnvironment["newcclosure"] = proxy
+	end)
+	pcall(function()
+		baseEnvironment[key] = state
+		baseEnvironment["newcclosure"] = proxy
+	end)
+end
+
+ensureFunction(globalEnvironment, "LPH_ATTRIBUTES", attribute)
+ensureFunction(globalEnvironment, "VM", attribute)
+ensureFunction(globalEnvironment, "PRESET", attribute)
+ensureFunction(globalEnvironment, "NONE", attribute)
+ensureFunction(globalEnvironment, "FAST", attribute)
+globalEnvironment["YHUB_NO_VIRTUALIZE"] = identity
+ensureFunction(baseEnvironment, "LPH_ATTRIBUTES", globalEnvironment["LPH_ATTRIBUTES"])
+ensureFunction(baseEnvironment, "VM", globalEnvironment["VM"])
+ensureFunction(baseEnvironment, "PRESET", globalEnvironment["PRESET"])
+ensureFunction(baseEnvironment, "NONE", globalEnvironment["NONE"])
+ensureFunction(baseEnvironment, "FAST", globalEnvironment["FAST"])
+baseEnvironment["YHUB_NO_VIRTUALIZE"] = globalEnvironment["YHUB_NO_VIRTUALIZE"]
+
+local installNewcclosureCompat, newcclosureCompatReason = shouldInstallNewcclosureCompatibility()
+if installNewcclosureCompat then
+	installNewcclosureCompatibility()
+end
+
+if baseUrl:sub(-1) ~= "/" then
+	baseUrl = baseUrl .. "/"
+end
+
+local Framework = {
+	Name = "Y Hub",
+	Version = "0.1.0",
+	BaseUrl = baseUrl,
+	Cache = {},
+	Config = loaderConfig,
+	StartedAt = os.clock(),
+}
+
+function Framework:Trace() end
+
+globalEnvironment.YHubFramework = Framework
+globalEnvironment.YCoreFramework = Framework
+
+--// 4. MÓDULOS DE COMPILAÇÃO E REQUISIÇÃO DE REDE
+local function log(message)
+	if verbose then
+		print("[Y Hub] " .. tostring(message))
+	end
+end
+
+local function fail(message)
+	warn("[Y Hub] framework start failed: " .. tostring(message))
+	return nil
+end
+
+local function normalizeModulePath(modulePath)
+	return tostring(modulePath or ""):gsub("\\", "/"):gsub("^/+", "")
+end
+
+local function cacheBust()
+	if loaderConfig.CacheBust ~= nil then
+		return tostring(loaderConfig.CacheBust)
+	end
+
+	return automaticCacheBust
+end
+
+local function withCacheBust(url)
+	if loaderConfig.NoCacheBust == true then
+		return url
+	end
+
+	local separator = string.find(url, "?", 1, true) and "&" or "?"
+	return url .. separator .. "v=" .. cacheBust()
+end
+
+local function loadLua(source, chunkName)
+	local loadedChunk, errorMessage = loadstring(source, chunkName)
+	assert(loadedChunk, errorMessage)
+	return loadedChunk
+end
+
+local function setChunkEnvironment(loadedChunk, moduleEnvironment)
+	if setfenv then
+		setfenv(loadedChunk, moduleEnvironment)
+	end
+
+	return loadedChunk
+end
+
+function Framework:Fetch(modulePath)
+	modulePath = normalizeModulePath(modulePath)
+	local moduleUrl = withCacheBust(self.BaseUrl .. modulePath)
+
+	log("fetch " .. moduleUrl)
+	return game:HttpGet(moduleUrl)
+end
+
+function Framework:FetchUrl(url)
+	url = withCacheBust(tostring(url))
+
+	log("fetch " .. url)
+	return game:HttpGet(url)
+end
+
+local function loadBootstrapModule(modulePath)
+	local moduleSource = Framework:Fetch(modulePath)
+	local loadedChunk = loadLua(moduleSource, "@" .. modulePath)
+	local moduleEnvironment = setmetatable({
+		Framework = Framework,
+		yrequire = function(childModulePath, childForceReload)
+			return Framework:yrequire(childModulePath, childForceReload)
+		end,
+	}, {
+		__index = baseEnvironment,
+	})
+
+	moduleEnvironment.Require = moduleEnvironment.yrequire
+	return setChunkEnvironment(loadedChunk, moduleEnvironment)()
+end
+
+do
+	local assertSuccess, assertModule = pcall(function()
+		return loadBootstrapModule("shared/Framework/Assert.lua")
+	end)
+
+	if assertSuccess and type(assertModule) == "table" and type(assertModule.Attach) == "function" then
+		assertModule.Attach(Framework)
+	else
+		warn("[Y Hub] Assert bootstrap failed: " .. tostring(assertModule))
+	end
+end
+
+if type(Framework.ReportError) ~= "function" then
+	function Framework:ReportError(stage, errorObject)
+		return tostring(errorObject)
+	end
+end
+if type(Framework.StartErrorWatcher) ~= "function" then
+	function Framework:StartErrorWatcher()
+		return false
+	end
+end
+
+local function runWithErrorReport(framework, stage, details, callback)
+	if framework and type(framework.RunWithErrorReport) == "function" then
+		return framework:RunWithErrorReport(stage, details, callback)
+	end
+
+	local success, result = xpcall(callback, function(errorObject)
+		return framework:ReportError(stage, errorObject, details)
+	end)
+
+	if not success then
+		error(result, 0)
+	end
+
+	return result
+end
+
+function Framework:LoadUrl(url, chunkName)
+	local resolvedChunkName = chunkName or ("@" .. tostring(url))
+	local moduleSource = runWithErrorReport(self, "fetch-url", {
+		url = url,
+		chunk = resolvedChunkName,
+	}, function()
+		return self:FetchUrl(url)
+	end)
+	local loadedChunk = runWithErrorReport(self, "compile-url", {
+		url = url,
+		chunk = resolvedChunkName,
+	}, function()
+		return loadLua(moduleSource, resolvedChunkName)
+	end)
+
+	local moduleEnvironment = setmetatable({
+		Framework = self,
+		yrequire = function(childModulePath, childForceReload)
+			return self:yrequire(childModulePath, childForceReload)
+		end,
+	}, {
+		__index = baseEnvironment,
+	})
+
+	moduleEnvironment.Require = moduleEnvironment.yrequire
+
+	return runWithErrorReport(self, "execute-url", {
+		url = url,
+		chunk = resolvedChunkName,
+	}, function()
+		return setChunkEnvironment(loadedChunk, moduleEnvironment)()
+	end)
+end
+
+function Framework:yrequire(modulePath, forceReload)
+	modulePath = normalizeModulePath(modulePath)
+
+	if not forceReload and self.Cache[modulePath] ~= nil then
+		return self.Cache[modulePath]
+	end
+
+	local moduleSource = runWithErrorReport(self, "fetch-module", {
+		module = modulePath,
+	}, function()
+		return self:Fetch(modulePath)
+	end)
+	local loadedChunk = runWithErrorReport(self, "compile-module", {
+		module = modulePath,
+	}, function()
+		return loadLua(moduleSource, "@" .. modulePath)
+	end)
+
+	local moduleEnvironment = setmetatable({
+		Framework = self,
+		yrequire = function(childModulePath, childForceReload)
+			return self:yrequire(childModulePath, childForceReload)
+		end,
+	}, {
+		__index = baseEnvironment,
+	})
+
+	moduleEnvironment.Require = moduleEnvironment.yrequire
+
+	local moduleResult = runWithErrorReport(self, "execute-module", {
+		module = modulePath,
+	}, function()
+		return setChunkEnvironment(loadedChunk, moduleEnvironment)()
+	end)
+	if moduleResult == nil then
+		moduleResult = true
+	end
+
+	self.Cache[modulePath] = moduleResult
+	return moduleResult
+end
+
+Framework.Require = Framework.yrequire
+
+if Framework.Release ~= true or releaseDiagnosticsEnabled() then
+	Framework:StartErrorWatcher()
+end
+
+--// 5. INICIALIZAÇÃO DO JOGO
+function Framework:Start()
+	local startSuccess, startResult = xpcall(function()
+		local gameRegistry = self:yrequire("games/index.lua", self.Config.ForceReload == true)
+		local selectedGameId = self.Config.Game
+
+		if selectedGameId == nil and type(gameRegistry.FindByPlaceId) == "function" then
+			selectedGameId = gameRegistry.FindByPlaceId(game.PlaceId)
+		end
+
+		selectedGameId = tostring(selectedGameId or gameRegistry.Default or "shinsei"):lower()
+
+		local gameInfo = nil
+		if type(gameRegistry.GetGame) == "function" then
+			gameInfo = gameRegistry.GetGame(selectedGameId)
+		elseif type(gameRegistry.Games) == "table" then
+			gameInfo = gameRegistry.Games[selectedGameId]
+		end
+
+		if type(gameInfo) ~= "table" then
+			error("unknown game: " .. selectedGameId)
+		end
+
+		self.GameId = selectedGameId
+		self.Game = gameInfo
+		self.Name = gameInfo.Name or self.Name
+		self.Version = tostring(gameInfo.Version or self.Version)
+
+		local sourceMode = self.Config.SourceMode == true
+		local gameModule
+
+		if sourceMode then
+			local gameModulePath = gameInfo.Entry or ("games/" .. selectedGameId .. "/init.lua")
+			gameModule = self:yrequire(gameModulePath, self.Config.ForceReload == true)
+		else
+			local bundleUrl = gameInfo.BundleUrl or gameInfo.BuildUrl or gameInfo.LoaderUrl
+
+			if bundleUrl then
+				gameModule = self:LoadUrl(bundleUrl, "@" .. selectedGameId .. ".bundle")
+			elseif gameInfo.Loader then
+				gameModule = self:yrequire(gameInfo.Loader, self.Config.ForceReload == true)
+			else
+				local gameModulePath = gameInfo.Entry or ("games/" .. selectedGameId .. "/init.lua")
+				gameModule = self:yrequire(gameModulePath, self.Config.ForceReload == true)
+			end
+		end
+
+		if type(gameModule) == "table" and type(gameModule.Start) == "function" then
+			local result = gameModule.Start(self)
+			return result
+		end
+
+		return gameModule
+	end, function(errorObject)
+		return self:ReportError("framework-start", errorObject, {
+			game = self.GameId or self.Config.Game or "auto",
+		})
+	end)
+
+	if not startSuccess then
+		return fail(startResult)
+	end
+
+	return startResult
+end
+
+return Framework:Start()
