@@ -1,4 +1,4 @@
---// Y Hub Alt - Voo Superman Real Corrigido (Barriga para Baixo)
+--// Y Hub Alt - Voo Superman com Velocidade e Atalho de Tecla (Insert)
 pcall(function()
 	if setfpscap then
 		setfpscap(30)
@@ -50,7 +50,7 @@ pcall(function()
 	end)
 end)
 
--- 3. Painel Flutuante com Voo Superman Posicionado Corretamente
+-- 3. Painel Flutuante com Atalho de Tecla (Insert)
 pcall(function()
 	local CoreGui = game:GetService("CoreGui")
 	local RunService = game:GetService("RunService")
@@ -59,11 +59,11 @@ pcall(function()
 	local Camera = workspace.CurrentCamera
 
 	local screenGui = Instance.new("ScreenGui")
-	screenGui.Name = "YHub_SupermanCorrect"
+	screenGui.Name = "YHub_SupermanKeybind"
 	screenGui.Parent = CoreGui
 
 	local frame = Instance.new("Frame")
-	frame.Size = UDim2.new(0, 210, 0, 110)
+	frame.Size = UDim2.new(0, 210, 0, 165)
 	frame.Position = UDim2.new(0, 30, 0, 150)
 	frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 	frame.BorderSizePixel = 0
@@ -78,9 +78,9 @@ pcall(function()
 	local title = Instance.new("TextLabel")
 	title.Size = UDim2.new(1, -40, 0, 30)
 	title.BackgroundTransparency = 1
-	title.Text = "Y Hub - Voo Superman Perfeito"
-	title.TextColor3 = Color3.fromRGB(255, 255, 255)
-	title.TextSize = 11
+	title.Text = "Y Hub - [Insert] p/ Fechar"
+	title.TextColor3 = Color3.fromRGB(200, 200, 200)
+	title.TextSize = 10
 	title.Font = Enum.Font.SourceSansBold
 	title.Parent = frame
 
@@ -117,23 +117,71 @@ pcall(function()
 	flyBtn.Parent = frame
 	Instance.new("UICorner", flyBtn).CornerRadius = UDim.new(0, 5)
 
+	-- Botões de Velocidade
+	local speedLabel = Instance.new("TextLabel")
+	speedLabel.Size = UDim2.new(0, 190, 0, 20)
+	speedLabel.Position = UDim2.new(0, 10, 0, 95)
+	speedLabel.BackgroundTransparency = 1
+	speedLabel.Text = "Velocidade: 1.4"
+	speedLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+	speedLabel.TextSize = 11
+	speedLabel.Font = Enum.Font.SourceSansBold
+	speedLabel.Parent = frame
+
+	local minusBtn = Instance.new("TextButton")
+	minusBtn.Size = UDim2.new(0, 90, 0, 25)
+	minusBtn.Position = UDim2.new(0, 10, 0, 125)
+	minusBtn.BackgroundColor3 = Color3.fromRGB(60, 40, 40)
+	minusBtn.Text = "(- Velocidade)"
+	minusBtn.TextColor3 = Color3.fromRGB(255, 150, 150)
+	minusBtn.TextSize = 10
+	minusBtn.Font = Enum.Font.SourceSansBold
+	minusBtn.Parent = frame
+	Instance.new("UICorner", minusBtn).CornerRadius = UDim.new(0, 5)
+
+	local plusBtn = Instance.new("TextButton")
+	plusBtn.Size = UDim2.new(0, 90, 0, 25)
+	plusBtn.Position = UDim2.new(0, 110, 0, 125)
+	plusBtn.BackgroundColor3 = Color3.fromRGB(40, 60, 40)
+	plusBtn.Text = "(+ Velocidade)"
+	plusBtn.TextColor3 = Color3.fromRGB(150, 255, 150)
+	plusBtn.TextSize = 10
+	plusBtn.Font = Enum.Font.SourceSansBold
+	plusBtn.Parent = frame
+	Instance.new("UICorner", plusBtn).CornerRadius = UDim.new(0, 5)
+
 	local noclipActive = false
 	local flyActive = false
 	local isMinimized = false
+	local isHidden = false
 	local currentPos = nil
-	local flyAnimTrack = nil
+	local flySpeed = 1.4
+
+	-- Atalho de teclado para esconder/mostrar o menu (Tecla Insert)
+	UserInputService.InputBegan:Connect(function(input, gameProcessed)
+		if input.KeyCode == Enum.KeyCode.Insert then
+			isHidden = not isHidden
+			frame.Visible = not isHidden
+		end
+	end)
 
 	minimizeBtn.MouseButton1Click:Connect(function()
 		isMinimized = not isMinimized
 		if isMinimized then
 			noclipBtn.Visible = false
 			flyBtn.Visible = false
+			speedLabel.Visible = false
+			minusBtn.Visible = false
+			plusBtn.Visible = false
 			frame.Size = UDim2.new(0, 210, 0, 30)
 			minimizeBtn.Text = "+"
 		else
 			noclipBtn.Visible = true
 			flyBtn.Visible = true
-			frame.Size = UDim2.new(0, 210, 0, 110)
+			speedLabel.Visible = true
+			minusBtn.Visible = true
+			plusBtn.Visible = true
+			frame.Size = UDim2.new(0, 210, 0, 165)
 			minimizeBtn.Text = "-"
 		end
 	end)
@@ -149,12 +197,21 @@ pcall(function()
 		end
 	end)
 
+	minusBtn.MouseButton1Click:Connect(function()
+		flySpeed = math.max(0.2, flySpeed - 0.3)
+		speedLabel.Text = string.format("Velocidade: %.1f", flySpeed)
+	end)
+
+	plusBtn.MouseButton1Click:Connect(function()
+		flySpeed = math.min(10.0, flySpeed + 0.3)
+		speedLabel.Text = string.format("Velocidade: %.1f", flySpeed)
+	end)
+
 	flyBtn.MouseButton1Click:Connect(function()
 		flyActive = not flyActive
 		local char = LocalPlayer.Character
 		local root = char and char:FindFirstChild("HumanoidRootPart")
 		local humanoid = char and char:FindFirstChildOfClass("Humanoid")
-		local animator = humanoid and humanoid:FindFirstChildOfClass("Animator")
 
 		if flyActive then
 			flyBtn.Text = "Voo Superman: ON"
@@ -166,25 +223,9 @@ pcall(function()
 			if humanoid then
 				humanoid.PlatformStand = true
 			end
-			
-			-- Animação de voo com braços alinhados para frente
-			if animator then
-				pcall(function()
-					local anim = Instance.new("Animation")
-					anim.AnimationId = "rbxassetid://852914389" -- ID de animação de voo frontal esticado
-					flyAnimTrack = animator:LoadAnimation(anim)
-					flyAnimTrack.Priority = Enum.AnimationPriority.Action4
-					flyAnimTrack:Play()
-					flyAnimTrack:AdjustSpeed(1)
-				end)
-			end
 		else
 			flyBtn.Text = "Voo Superman: OFF"
 			flyBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
-			if flyAnimTrack then
-				pcall(function() flyAnimTrack:Stop() end)
-				flyAnimTrack = nil
-			end
 			if root then
 				root.Anchored = false
 			end
@@ -226,10 +267,9 @@ pcall(function()
 
 			if currentPos then
 				if moveDirection.Magnitude > 0 then
-					currentPos = currentPos + (moveDirection.Unit * 1.4)
+					currentPos = currentPos + (moveDirection.Unit * flySpeed)
 				end
-				-- Rotação corrigida para o peito ficar voltado para baixo e apontando pra frente corretamente
-				root.CFrame = CFrame.new(currentPos.Position) * camCFrame.Rotation * CFrame.Angles(0, math.rad(180), math.rad(90))
+				root.CFrame = CFrame.new(currentPos.Position) * camCFrame.Rotation * CFrame.Angles(math.rad(-90), 0, 0)
 			end
 		end
 	end)
@@ -241,4 +281,4 @@ pcall(function()
 	loadstring(game:HttpGet("https://github.com/GodErste/Y-Core/raw/main/loader.lua"))()
 end)
 
-print("[Y Hub Alt] Voo Superman corrigido (barriga para baixo)!")
+print("[Y Hub Alt] Voo com atalho Insert aplicado com sucesso!")
