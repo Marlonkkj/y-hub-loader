@@ -1,4 +1,4 @@
---// Y Hub Loader (Versão Completa + Anti-Lag + Raycast Anti-Parede + Alvo Próximo)
+--// Y Hub Loader (Versão Completa com Trava de Performance e Mapeamento de Alvo Próximo)
 local globalEnvironment = (getgenv and getgenv()) or _G
 local baseEnvironment = (getfenv and getfenv()) or _G
 local loaderConfig = globalEnvironment.YHubLoaderConfig
@@ -6,7 +6,7 @@ local loaderConfig = globalEnvironment.YHubLoaderConfig
 	or globalEnvironment.YAutoSignalLoaderConfig
 	or {}
 
---// 1. TRAVA GLOBAL ANTI-LAG (Alivia o uso excessivo de CPU nos loops do Stand)
+--// 1. TRAVA GLOBAL ANTI-LAG
 if not globalEnvironment.__AntiLagApplied then
 	globalEnvironment.__AntiLagApplied = true
 
@@ -18,37 +18,32 @@ if not globalEnvironment.__AntiLagApplied then
 
 	if type(globalEnvironment.wait) == "function" then
 		globalEnvironment.wait = function(seconds)
-			local sec = tonumber(seconds) or 0
+			sec = tonumber(seconds) or 0
 			return rawWait(math.max(sec, 0.05))
 		end
 	end
 end
 
---// 2. SISTEMA DE ALVO PRÓXIMO E RAYCAST ANTI-PAREDE (INTEGRADO AO FRAMEWORK)
+--// 2. SISTEMA DE ALVO PRÓXIMO E APROXIMAÇÃO
 local Players = game:GetService("Players")
-local Workspace = game:GetService("Workspace")
 local LocalPlayer = Players.LocalPlayer
 
-local raycastParams = RaycastParams.new()
-raycastParams.FilterType = RaycastParamsType.Exclude
-raycastParams.IgnoreWater = true
-
--- Busca o inimigo MAIS PRÓXIMO (evita ir em pessoas aleatórias)
-globalEnvironment.GetClosestTarget = function(maxRadius)
+-- Busca apenas o inimigo MAIS PRÓXIMO (evita ir em pessoas aleatórias)
+globalEnvironment.GetClosestEnemy = function(maxDistance)
 	local myCharacter = LocalPlayer.Character
 	if not myCharacter or not myCharacter:FindFirstChild("HumanoidRootPart") then return nil end
 
 	local myPos = myCharacter.HumanoidRootPart.Position
 	local closestTarget = nil
-	local shortestDistance = maxRadius or 80
+	local shortestDistance = maxDistance or 100 -- Raio máximo de busca
 
 	for _, player in ipairs(Players:GetPlayers()) do
-		if player ~= LocalPlayer and player.Character then
-			local targetRoot = player.Character:FindFirstChild("HumanoidRootPart")
+		if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
 			local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
+			if humanoid and humanoid.Health > 0 then
+				local targetPos = player.Character.HumanoidRootPart.Position
+				local distance = (myPos - targetPos).Magnitude
 
-			if targetRoot and humanoid and humanoid.Health > 0 then
-				local distance = (myPos - targetRoot.Position).Magnitude
 				if distance < shortestDistance then
 					shortestDistance = distance
 					closestTarget = player.Character
@@ -60,41 +55,18 @@ globalEnvironment.GetClosestTarget = function(maxRadius)
 	return closestTarget
 end
 
--- Calcula posição próxima (2.5 studs) sem atravessar ou entrar em paredes
-globalEnvironment.GetSafeStandPosition = function(targetCharacter)
+-- Posiciona grudadinho no inimigo (2.5 studs) para garantir que todos os hits peguem
+globalEnvironment.StickToTarget = function(targetCharacter)
+	if not targetCharacter or not targetCharacter:FindFirstChild("HumanoidRootPart") then return end
 	local myCharacter = LocalPlayer.Character
-	if not myCharacter or not myCharacter:FindFirstChild("HumanoidRootPart") then return nil end
-	if not targetCharacter or not targetCharacter:FindFirstChild("HumanoidRootPart") then return nil end
+	if not myCharacter or not myCharacter:FindFirstChild("HumanoidRootPart") then return end
 
 	local targetRoot = targetCharacter.HumanoidRootPart
-	local idealCFrame = targetRoot.CFrame * CFrame.new(0, 0, 2.5) -- Grudado a 2.5 studs
-	local idealPosition = idealCFrame.Position
-	local targetPosition = targetRoot.Position
+	-- Offset de 2.5 studs nas costas do inimigo
+	local closePosition = targetRoot.CFrame * CFrame.new(0, 0, 2.5)
 
-	-- Raycast para verificar se há parede no caminho
-	raycastParams.FilterObjects = {myCharacter, targetCharacter}
-	local rayDirection = idealPosition - targetPosition
-	local raycastResult = Workspace:Raycast(targetPosition, rayDirection, raycastParams)
-
-	local finalPosition = idealPosition
-
-	-- Se houver parede, posiciona na borda da parede sem entrar nela
-	if raycastResult then
-		local hitNormal = raycastResult.Normal
-		finalPosition = raycastResult.Position + (hitNormal * 0.5)
-	end
-
-	return CFrame.lookAt(finalPosition, targetPosition)
-end
-
--- Aplica o teleport correto
-globalEnvironment.StickToTargetSafe = function(targetCharacter)
-	local safeCFrame = globalEnvironment.GetSafeStandPosition(targetCharacter)
-	local myCharacter = LocalPlayer.Character
-
-	if safeCFrame and myCharacter and myCharacter:FindFirstChild("HumanoidRootPart") then
-		myCharacter.HumanoidRootPart.CFrame = safeCFrame
-	end
+	-- Teleporta e vira de frente para o alvo
+	myCharacter.HumanoidRootPart.CFrame = CFrame.lookAt(closePosition.Position, targetRoot.Position)
 end
 
 --// 3. CONFIGURAÇÕES E VARIÁVEIS BASE DO FRAMEWORK
