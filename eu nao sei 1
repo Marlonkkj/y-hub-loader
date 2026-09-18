@@ -1,4 +1,4 @@
---// Y Hub Loader (Versão Integral com Trava Global de Performance)
+--// Y Hub Loader (Versão Completa + Otimização de Performance + Lógica de Distância)
 local globalEnvironment = (getgenv and getgenv()) or _G
 local baseEnvironment = (getfenv and getfenv()) or _G
 local loaderConfig = globalEnvironment.YHubLoaderConfig
@@ -6,7 +6,7 @@ local loaderConfig = globalEnvironment.YHubLoaderConfig
 	or globalEnvironment.YAutoSignalLoaderConfig
 	or {}
 
---// 1. TRAVA GLOBAL ANTI-LAG (Garante que os loops do Stand não consumam 100% da CPU)
+--// 1. TRAVA GLOBAL ANTI-LAG (Alivia o uso excessivo de CPU nos loops do Stand)
 if not globalEnvironment.__AntiLagApplied then
 	globalEnvironment.__AntiLagApplied = true
 
@@ -24,7 +24,21 @@ if not globalEnvironment.__AntiLagApplied then
 	end
 end
 
---// 2. CONFIGURAÇÕES E VARIÁVEIS DE AMBIENTE
+--// 2. FUNÇÃO AUXILIAR DE POSICIONAMENTO SEGURO (Fora do alcance de golpes)
+globalEnvironment.GetSafeStandPosition = function(targetCharacter, safeDistance)
+	if not targetCharacter or not targetCharacter:FindFirstChild("HumanoidRootPart") then
+		return nil
+	end
+
+	local targetRoot = targetCharacter.HumanoidRootPart
+	local distance = tonumber(safeDistance) or 5.5 -- 5.5 studs: fora do alcance do golpe, mas perto do alvo
+
+	-- Calcula a posição segura logo atrás do oponente olhando diretamente para ele
+	local safeCFrame = targetRoot.CFrame * CFrame.new(0, 0, distance)
+	return CFrame.lookAt(safeCFrame.Position, targetRoot.Position)
+end
+
+--// 3. CONFIGURAÇÕES E VARIÁVEIS BASE DO FRAMEWORK
 local baseUrl = loaderConfig.BaseUrl or "https://raw.githubusercontent.com/GodErste/Y-Core/main/"
 local verbose = loaderConfig.Verbose == true
 local automaticCacheBust = tostring(math.floor(os.clock() * 1000000))
@@ -192,7 +206,7 @@ function Framework:Trace() end
 globalEnvironment.YHubFramework = Framework
 globalEnvironment.YCoreFramework = Framework
 
---// 3. MÓDULOS DE REQUISIÇÃO E COMPILAÇÃO
+--// 4. MÓDULOS DE COMPILAÇÃO E REQUISIÇÃO DE REDE
 local function log(message)
 	if verbose then
 		print("[Y Hub] " .. tostring(message))
@@ -391,7 +405,7 @@ if Framework.Release ~= true or releaseDiagnosticsEnabled() then
 	Framework:StartErrorWatcher()
 end
 
---// 4. INICIALIZAÇÃO DO MÓDULO DO JOGO
+--// 5. INICIALIZAÇÃO DO JOGO E MÓDULOS
 function Framework:Start()
 	local startSuccess, startResult = xpcall(function()
 		local gameRegistry = self:yrequire("games/index.lua", self.Config.ForceReload == true)
