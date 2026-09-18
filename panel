@@ -1,11 +1,11 @@
---// Y Hub Alt - Código Completo Ultra-Otimizado (Anti-Lag Extremo + Loader)
+--// Y Hub Alt - Versão Completa Definitiva com Keybind GUI para Fotos/NoClip
 pcall(function()
 	if setfpscap then
-		setfpscap(30) -- Trava o FPS da alt para poupar o processador
+		setfpscap(30)
 	end
 end)
 
--- 1. Limpeza gráfica profunda do ambiente e remoção de partículas globais
+-- 1. Limpeza gráfica e remoção de elementos pesados do ambiente
 pcall(function()
 	local Lighting = game:GetService("Lighting")
 	Lighting.GlobalShadows = false
@@ -13,7 +13,7 @@ pcall(function()
 	Lighting.Technology = Enum.Technology.Compatibility
 	
 	for _, v in ipairs(Lighting:GetChildren()) do
-		if v:IsA("PostEffect") or v:IsA("BlurEffect") or v:IsA("SunRaysEffect") then
+		if v:IsA("PostEffect") or v:IsA("BlurEffect") or v:IsA("SunRaysEffect") or v:IsA("Atmosphere") then
 			v.Enabled = false
 		end
 	end
@@ -22,13 +22,13 @@ pcall(function()
 		if v:IsA("BasePart") then
 			v.Material = Enum.Material.SmoothPlastic
 			v.CastShadow = false
-		elseif v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Beam") or v:IsA("Fire") or v:IsA("Smoke") or v:IsA("Sparkles") then
+		elseif v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Beam") or v:IsA("Fire") or v:IsA("Smoke") or v:IsA("Sound") then
 			v:Destroy()
 		end
 	end
 end)
 
--- 2. Anti-Lag Extremo para Servidores Cheios (Oculta e simplifica players distantes)
+-- 2. Sistema Anti-Lag Agressivo para Servidores Cheios
 pcall(function()
 	local Players = game:GetService("Players")
 	local LocalPlayer = Players.LocalPlayer
@@ -37,8 +37,7 @@ pcall(function()
 	local counter = 0
 	RunService.Heartbeat:Connect(function()
 		counter = counter + 1
-		-- Executa a cada 30 frames para não consumir CPU à toa
-		if counter % 30 ~= 0 then return end
+		if counter % 20 ~= 0 then return end
 
 		pcall(function()
 			local localRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
@@ -51,8 +50,7 @@ pcall(function()
 					
 					if root then
 						local distance = (root.Position - localRoot.Position).Magnitude
-						-- Se o player estiver a mais de 30 studs, remove roupas e texturas pesadas dele
-						if distance > 30 then
+						if distance > 25 then
 							for _, part in ipairs(char:GetDescendants()) do
 								if part:IsA("BasePart") then
 									part.Transparency = 1
@@ -62,12 +60,10 @@ pcall(function()
 								end
 							end
 						else
-							-- Restaura se aproximar
 							for _, part in ipairs(char:GetDescendants()) do
-								if part:IsA("BasePart") and part.Name == "HumanoidRootPart" then
-									part.Transparency = 1
-								elseif part:IsA("BasePart") and part.Transparency == 1 then
+								if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" and part.Transparency == 1 then
 									part.Transparency = 0
+									part.CanCollide = true
 								end
 							end
 						end
@@ -78,19 +74,189 @@ pcall(function()
 	end)
 end)
 
--- 3. Coletor de lixo agressivo contínuo
+-- 3. Sistema de Mira Preditiva Instantânea (Anti-Vento para M1 e Kokuzen/R)
 pcall(function()
-	collectgarbage("setpause", 130)
-	collectgarbage("setstepmul", 250)
-	
-	task.spawn(function()
-		while task.wait(3) do
-			collectgarbage("step", 200)
+	local Players = game:GetService("Players")
+	local RunService = game:GetService("RunService")
+	local LocalPlayer = Players.LocalPlayer
+
+	RunService.RenderStepped:Connect(function()
+		pcall(function()
+			local char = LocalPlayer.Character
+			local root = char and char:FindFirstChild("HumanoidRootPart")
+			if not root then return end
+
+			local target = nil
+			local shortestDistance = 14
+
+			for _, player in ipairs(Players:GetPlayers()) do
+				if player ~= LocalPlayer and player.Character then
+					local enemyRoot = player.Character:FindFirstChild("HumanoidRootPart")
+					local enemyHumanoid = player.Character:FindFirstChildOfClass("Humanoid")
+					
+					if enemyRoot and enemyHumanoid and enemyHumanoid.Health > 0 then
+						local dist = (root.Position - enemyRoot.Position).Magnitude
+						if dist < shortestDistance then
+							shortestDistance = dist
+							target = enemyRoot
+						end
+					end
+				end
+			end
+
+			if target then
+				root.CFrame = CFrame.new(root.Position, Vector3.new(target.Position.X, root.Position.Y, target.Position.Z))
+			end
+		end)
+	end)
+end)
+
+-- 4. Função Auto-Parry Inteligente (Defesa automática em zona de perigo)
+pcall(function()
+	local Players = game:GetService("Players")
+	local RunService = game:GetService("RunService")
+	local VirtualInputManager = game:GetService("VirtualInputManager")
+	local LocalPlayer = Players.LocalPlayer
+
+	RunService.Heartbeat:Connect(function()
+		pcall(function()
+			local char = LocalPlayer.Character
+			local root = char and char:FindFirstChild("HumanoidRootPart")
+			if not root then return end
+
+			for _, player in ipairs(Players:GetPlayers()) do
+				if player ~= LocalPlayer and player.Character then
+					local enemyRoot = player.Character:FindFirstChild("HumanoidRootPart")
+					local enemyHumanoid = player.Character:FindFirstChildOfClass("Humanoid")
+					
+					if enemyRoot and enemyHumanoid and enemyHumanoid.Health > 0 then
+						local dist = (root.Position - enemyRoot.Position).Magnitude
+						if dist <= 6 then
+							VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.F, false, game)
+							task.delay(0.15, function()
+								VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.F, false, game)
+							end)
+						end
+					end
+				end
+			end
+		end)
+	end)
+end)
+
+-- 5. NoClip para Fotos com Caixinha de Escolha de Tecla (GUI Flutuante)
+pcall(function()
+	local CoreGui = game:GetService("CoreGui")
+	local UserInputService = game:GetService("UserInputService")
+	local RunService = game:GetService("RunService")
+	local LocalPlayer = game:GetService("Players").LocalPlayer
+
+	-- Cria a caixinha na tela da alt
+	local screenGui = Instance.new("ScreenGui")
+	screenGui.Name = "YHub_KeybindGUI"
+	screenGui.Parent = CoreGui
+
+	local frame = Instance.new("Frame")
+	frame.Size = UDim2.new(0, 220, 0, 110)
+	frame.Position = UDim2.new(0, 30, 0, 30)
+	frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+	frame.BorderSizePixel = 0
+	frame.Active = true
+	frame.Draggable = true
+	frame.Parent = screenGui
+
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 8)
+	corner.Parent = frame
+
+	local title = Instance.new("TextLabel")
+	title.Size = UDim2.new(1, 0, 0, 30)
+	title.BackgroundTransparency = 1
+	title.Text = "Y Hub - NoClip Foto"
+	title.TextColor3 = Color3.fromRGB(255, 255, 255)
+	title.TextSize = 14
+	title.Font = Enum.Font.SourceSansBold
+	title.Parent = frame
+
+	local statusLabel = Instance.new("TextLabel")
+	statusLabel.Size = UDim2.new(1, 0, 0, 25)
+	statusLabel.Position = UDim2.new(0, 0, 0, 35)
+	statusLabel.BackgroundTransparency = 1
+	statusLabel.Text = "Status: DESLIGADO"
+	statusLabel.TextColor3 = Color3.fromRGB(255, 80, 80)
+	statusLabel.TextSize = 13
+	statusLabel.Font = Enum.Font.SourceSansBold
+	statusLabel.Parent = frame
+
+	local bindButton = Instance.new("TextButton")
+	bindButton.Size = UDim2.new(0, 200, 0, 35)
+	bindButton.Position = UDim2.new(0, 10, 0, 65)
+	bindButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+	bindButton.Text = "Tecla Ativa: N (Clique para mudar)"
+	bindButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+	bindButton.TextSize = 12
+	bindButton.Font = Enum.Font.SourceSans
+	bindButton.Parent = frame
+
+	local btnCorner = Instance.new("UICorner")
+	btnCorner.CornerRadius = UDim.new(0, 6)
+	btnCorner.Parent = bindButton
+
+	local currentKey = Enum.KeyCode.N
+	local noclipEnabled = false
+	local bindingMode = false
+
+	bindButton.MouseButton1Click:Connect(function()
+		bindingMode = true
+		bindButton.Text = "Pressione qualquer tecla..."
+	end)
+
+	UserInputService.InputBegan:Connect(function(input, gameProcessed)
+		if bindingMode then
+			if input.UserInputType == Enum.UserInputType.Keyboard then
+				currentKey = input.KeyCode
+				bindingMode = false
+				bindButton.Text = "Tecla Ativa: " .. tostring(currentKey.Name) .. " (Mudar)"
+			end
+			return
+		end
+
+		if not gameProcessed and input.KeyCode == currentKey then
+			noclipEnabled = not noclipEnabled
+			if noclipEnabled then
+				statusLabel.Text = "Status: LIGADO (" .. currentKey.Name .. ")"
+				statusLabel.TextColor3 = Color3.fromRGB(80, 255, 80)
+			else
+				statusLabel.Text = "Status: DESLIGADO"
+				statusLabel.TextColor3 = Color3.fromRGB(255, 80, 80)
+			end
+		end
+	end)
+
+	RunService.Stepped:Connect(function()
+		if noclipEnabled and LocalPlayer.Character then
+			for _, part in ipairs(LocalPlayer.Character:GetDescendants()) do
+				if part:IsA("BasePart") then
+					part.CanCollide = false
+				end
+			end
 		end
 	end)
 end)
 
--- 4. Carregamento seguro do loader oficial atualizado
+-- 6. Coletor de lixo para manter a memória limpa
+pcall(function()
+	collectgarbage("setpause", 100)
+	collectgarbage("setstepmul", 300)
+	
+	task.spawn(function()
+		while task.wait(2) do
+			collectgarbage("step", 300)
+		end
+	end)
+end)
+
+-- 7. Carregamento seguro do loader oficial atualizado
 local success, err = pcall(function()
 	loadstring(game:HttpGet("https://raw.githubusercontent.com/GodErste/Y-Core/refs/heads/main/loader.lua"))()
 end)
@@ -98,5 +264,5 @@ end)
 if not success then
 	warn("[Y Hub Alt] Falha ao carregar: " .. tostring(err))
 else
-	print("[Y Hub Alt] Injetado com sucesso no modo Ultra-Performance!")
+	print("[Y Hub Alt] Injetado com sucesso com a Keybind GUI!")
 end
