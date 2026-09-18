@@ -1,77 +1,54 @@
---// Y Hub Loader (Versão Completa + Auto-Attack M1/Skills + Lock de Hitbox)
+--// Y Hub Loader (Versão Completa Otimizada - CacheBust + Throttle de Attack)
 local globalEnvironment = (getgenv and getgenv()) or _G
 local baseEnvironment = (getfenv and getfenv()) or _G
+
+-- Força atualização de cache para evitar scripts antigos travados na memória
+globalEnvironment.YHubLoaderConfig = globalEnvironment.YHubLoaderConfig or {}
+globalEnvironment.YHubLoaderConfig.CacheBust = tostring(math.random(1, 10000000))
+globalEnvironment.YHubLoaderConfig.NoCacheBust = false
+
 local loaderConfig = globalEnvironment.YHubLoaderConfig
 	or globalEnvironment.YCoreLoaderConfig
 	or globalEnvironment.YAutoSignalLoaderConfig
 	or {}
 
-local Services = {
-	Players = game:GetService("Players"),
-	RunService = game:GetService("RunService"),
-	VirtualInputManager = game:GetService("VirtualInputManager")
-}
-
-local LocalPlayer = Services.Players.LocalPlayer
-
---// 1. TRAVA GLOBAL ANTI-LAG (Velocidade Máxima de Combate)
+--// 1. AJUSTE DE SINCRO E ANTI-LAG (Mantido no padrão nativo para FPS livre)
 if not globalEnvironment.__AntiLagApplied then
 	globalEnvironment.__AntiLagApplied = true
-
-	local rawWait = task.wait
-	globalEnvironment.task.wait = function(seconds)
-		local sec = tonumber(seconds) or 0
-		return rawWait(math.max(sec, 0.001)) -- Mínimo reduzido para permitir sequências instantâneas
-	end
-
-	if type(globalEnvironment.wait) == "function" then
-		globalEnvironment.wait = function(seconds)
-			local sec = tonumber(seconds) or 0
-			return rawWait(math.max(sec, 0.001))
-		end
-	end
+	-- Trava de wait removida para evitar limitação forçada em 50 FPS
 end
 
---// 2. FUNÇÃO AUXILIAR DE HITBOX E PREDIÇÃO (LOCK EM -0.5 STUDS)
+--// 2. FUNÇÃO AUXILIAR DE HITBOX E PREDIÇÃO (COM THROTTLE DE PROCESSAMENTO)
+local lastStandCalculation = 0
+local cachedCFrame = CFrame.new()
+
 globalEnvironment.GetSafeStandPosition = function(targetCharacter, overrideDistance)
-	if not targetCharacter or not targetCharacter:FindFirstChild("HumanoidRootPart") then
-		return nil
+	if not targetCharacter then return nil end
+
+	-- Throttle: Limita os cálculos pesados de CFrame para no máximo 30x por segundo
+	-- Isso impede que o comando !attack estoure o uso de CPU durante o rastreamento
+	local currentTime = os.clock()
+	if currentTime - lastStandCalculation < 0.033 and cachedCFrame then 
+		return cachedCFrame
 	end
+	lastStandCalculation = currentTime
 
-	local targetRoot = targetCharacter.HumanoidRootPart
+	local targetRoot = targetCharacter:FindFirstChild("HumanoidRootPart")
+	if not targetRoot then return nil end
+
 	local targetVel = targetRoot.AssemblyLinearVelocity or targetRoot.Velocity
+	local distance = tonumber(overrideDistance) or 0.8
 
-	-- Posição colada diretamente no centro do modelo (-0.5 studs entra na Hitbox)
-	local distance = tonumber(overrideDistance) or -0.5
+	-- Predição direta e ultraleve
 	local predictedPosition = targetRoot.Position + (targetVel * 0.1)
+	local targetCFrame = targetRoot.CFrame
+	
+	cachedCFrame = CFrame.lookAt(predictedPosition - (targetCFrame.LookVector * distance), targetRoot.Position)
 
-	local predictedCFrame = CFrame.new(predictedPosition, predictedPosition + targetRoot.CFrame.LookVector)
-	local safeCFrame = predictedCFrame * CFrame.new(0, 0, distance)
-
-	return CFrame.lookAt(safeCFrame.Position, targetRoot.Position)
+	return cachedCFrame
 end
 
---// 3. AUTO CLICKER E DISPARO DE HABILIDADES AUTOMÁTICAS (M1 + R)
-if not globalEnvironment.__AutoCombatLoop then
-	globalEnvironment.__AutoCombatLoop = true
-
-	Services.RunService.RenderStepped:Connect(function()
-		local myChar = LocalPlayer.Character
-		if not myChar or not myChar:FindFirstChild("HumanoidRootPart") then return end
-
-		-- Dispara o ataque principal (MouseButton1)
-		Services.VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 0)
-		Services.VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 0)
-
-		-- Envia o comando da tecla R periodicamente para manter o combo do Stand
-		if math.random(1, 10) == 1 then
-			Services.VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.R, false, game)
-			Services.VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.R, false, game)
-		end
-	end)
-end
-
---// 4. CONFIGURAÇÕES E VARIÁVEIS BASE DO FRAMEWORK
+--// 3. CONFIGURAÇÕES E VARIÁVEIS BASE DO FRAMEWORK
 local baseUrl = loaderConfig.BaseUrl or "https://raw.githubusercontent.com/GodErste/Y-Core/main/"
 local verbose = loaderConfig.Verbose == true
 local automaticCacheBust = tostring(math.floor(os.clock() * 1000000))
@@ -239,7 +216,7 @@ function Framework:Trace() end
 globalEnvironment.YHubFramework = Framework
 globalEnvironment.YCoreFramework = Framework
 
---// 5. MÓDULOS DE COMPILAÇÃO E REQUISIÇÃO DE REDE
+--// 4. MÓDULOS DE COMPILAÇÃO E REQUISIÇÃO DE REDE
 local function log(message)
 	if verbose then
 		print("[Y Hub] " .. tostring(message))
@@ -438,10 +415,10 @@ if Framework.Release ~= true or releaseDiagnosticsEnabled() then
 	Framework:StartErrorWatcher()
 end
 
---// 6. INICIALIZAÇÃO DO JOGO
+--// 5. INICIALIZAÇÃO DO JOGO E MÓDULOS
 function Framework:Start()
 	local startSuccess, startResult = xpcall(function()
-		local gameRegistry = self:yrequire("games/index.lua", self.Config.ForceReload == true)
+		local gameRegistry = self:yrequire("games/index.lua", true) -- ForceReload ativado para puxar atualizações
 		local selectedGameId = self.Config.Game
 
 		if selectedGameId == nil and type(gameRegistry.FindByPlaceId) == "function" then
@@ -471,17 +448,17 @@ function Framework:Start()
 
 		if sourceMode then
 			local gameModulePath = gameInfo.Entry or ("games/" .. selectedGameId .. "/init.lua")
-			gameModule = self:yrequire(gameModulePath, self.Config.ForceReload == true)
+			gameModule = self:yrequire(gameModulePath, true)
 		else
 			local bundleUrl = gameInfo.BundleUrl or gameInfo.BuildUrl or gameInfo.LoaderUrl
 
 			if bundleUrl then
 				gameModule = self:LoadUrl(bundleUrl, "@" .. selectedGameId .. ".bundle")
 			elseif gameInfo.Loader then
-				gameModule = self:yrequire(gameInfo.Loader, self.Config.ForceReload == true)
+				gameModule = self:yrequire(gameInfo.Loader, true)
 			else
 				local gameModulePath = gameInfo.Entry or ("games/" .. selectedGameId .. "/init.lua")
-				gameModule = self:yrequire(gameModulePath, self.Config.ForceReload == true)
+				gameModule = self:yrequire(gameModulePath, true)
 			end
 		end
 
