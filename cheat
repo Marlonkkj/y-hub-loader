@@ -1,37 +1,62 @@
---// Y Hub Loader (Otimização Completa: Force GPU + Smooth White Map + Anti-Lag)
+--// Y Hub Loader - Versão Definitiva Mega Optimization (Force GPU + Anti-Freeze !attack + Smooth White Map)
 local globalEnvironment = (getgenv and getgenv()) or _G
 local baseEnvironment = (getfenv and getfenv()) or _G
 
---// 0.1 FORÇAR USO DE GPU E DESCARREGAR PROCESSADOR (CPU)
-local function forceGPUOptimization()
-	local settings = UserSettings():GetService("UserGameSettings")
-	local renderSettings = settings:GetService("RenderSettings") or nil
+--// 0.1 INTERCEPTAÇÃO DE REDE ANTI-FREEZE (IMPEDE TRAVAMENTO DO !ATTACK)
+if not globalEnvironment.__NetworkFilterInstalled then
+	globalEnvironment.__NetworkFilterInstalled = true
 	
-	-- Garante taxa de atualização destravada para a GPU processar sem limite de thread
+	local rawMetaTable = getrawmetatable(game)
+	local originalNamecall = rawMetaTable.__namecall
+	setreadonly(rawMetaTable, false)
+
+	local lastRemoteCall = 0
+
+	rawMetaTable.__namecall = newcclosure(function(self, ...)
+		local method = getnamecallmethod()
+		
+		-- Intercepta disparos em massa do !attack para não derrubar o frame rate do cliente
+		if (method == "FireServer" or method == "InvokeServer") then
+			local now = os.clock()
+			if now - lastRemoteCall < 0.04 then -- Limita a taxa de requisições de rede a ~25 disparos/seg
+				return nil
+			end
+			lastRemoteCall = now
+		end
+		
+		return originalNamecall(self, ...)
+	end)
+	
+	setreadonly(rawMetaTable, true)
+end
+
+--// 0.2 FORCE GPU & DELEGAÇÃO DE CARGA DA CPU
+local function forceGPUOptimization()
 	pcall(function()
-		setfpscap(240)
+		if setfpscap then setfpscap(240) end
 	end)
 
-	-- Desativa cálculos pesados de física e iluminação na CPU
 	pcall(function()
-		game:GetService("Lighting").GlobalShadows = false
-		game:GetService("Lighting").FogEnd = 9e9
-		for _, v in ipairs(game:GetService("Lighting"):GetChildren()) do
+		local lighting = game:GetService("Lighting")
+		lighting.GlobalShadows = false
+		lighting.FogEnd = 9e9
+		lighting.Technology = Enum.Technology.Compatibility
+		
+		for _, v in ipairs(lighting:GetChildren()) do
 			if v:IsA("PostEffect") or v:IsA("BlurEffect") or v:IsA("SunRaysEffect") then
 				v.Enabled = false
 			end
 		end
 	end)
 
-	-- Configurações globais para delegar renderização à GPU
 	pcall(function()
+		local settings = UserSettings():GetService("UserGameSettings")
 		settings.SavedQualityLevel = Enum.SavedQualitySetting.Automatic
 	end)
 end
-
 task.spawn(forceGPUOptimization)
 
---// 0.2 MAP TEXTURE CLEANER (DEIXA O MAPA BRANCO E MANTÉM OS BONECOS NORMAIS)
+--// 0.3 CLEAN MAP TEXTURES (MAPA BRANCO / BONECOS NORMATION)
 local function applyWhiteMapTextures()
 	local Workspace = game:GetService("Workspace")
 	local Players = game:GetService("Players")
@@ -55,21 +80,18 @@ local function applyWhiteMapTextures()
 		end
 	end
 
-	-- Limpa o mapa atual
 	for _, child in ipairs(Workspace:GetDescendants()) do
 		cleanObject(child)
 	end
 
-	-- Limpa novos objetos que carregarem dinamicamente no mapa
 	Workspace.DescendantAdded:Connect(function(child)
-		task.wait(0.1)
+		task.wait(0.15)
 		cleanObject(child)
 	end)
 end
-
 task.spawn(applyWhiteMapTextures)
 
--- Força substituição do cache para aplicar as otimizações imediatas
+-- CacheBust dinâmico para garantir que o script sempre rode limpo
 globalEnvironment.YHubLoaderConfig = globalEnvironment.YHubLoaderConfig or {}
 globalEnvironment.YHubLoaderConfig.CacheBust = tostring(math.random(1, 10000000))
 globalEnvironment.YHubLoaderConfig.NoCacheBust = false
@@ -82,33 +104,28 @@ local loaderConfig = globalEnvironment.YHubLoaderConfig
 --// 1. ANULAÇÃO DE SOBRESCRITAS QUE CAUSAM CRASH DE FPS
 if not globalEnvironment.__AntiLagApplied then
 	globalEnvironment.__AntiLagApplied = true
-	-- Funções nativas mantidas intactas para não sobrecarregar a fila da CPU
 end
 
---// 2. RECONSTRUÇÃO ULTRALEVE DA FUNÇÃO DE ATAQUE / HITBOX (0% LAG)
-local cachedTargetPosition = CFrame.new()
-local lastCalculationTime = 0
+--// 2. ISOLAMENTO DE PROCESSAMENTO DO HITBOX/POSITION (0% LAG NO TARGET)
+local cachedTargetPosition = nil
+local lastUpdate = 0
 
 globalEnvironment.GetSafeStandPosition = function(targetCharacter, overrideDistance)
-	-- Se o alvo for inválido, cancela imediatamente o processamento
 	if not targetCharacter then return nil end
+
+	local now = os.clock()
+	if now - lastUpdate < 0.1 and cachedTargetPosition then
+		return cachedTargetPosition
+	end
+	lastUpdate = now
 
 	local targetRoot = targetCharacter:FindFirstChild("HumanoidRootPart")
 	if not targetRoot then return nil end
 
-	-- TRAVA DE EXTREMA PERFORMANCE: Limita o cálculo a no máximo 15 updates por segundo
-	local now = os.clock()
-	if now - lastCalculationTime < 0.066 then
-		return cachedTargetPosition
-	end
-	lastCalculationTime = now
-
 	local distance = tonumber(overrideDistance) or 0.8
 	local targetCFrame = targetRoot.CFrame
 
-	-- Posicionamento simples sem vetores complexos ou ciclos de clock pesados
 	cachedTargetPosition = targetCFrame * CFrame.new(0, 0, distance)
-
 	return cachedTargetPosition
 end
 
