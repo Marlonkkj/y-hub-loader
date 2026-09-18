@@ -1,4 +1,4 @@
---// Y Hub Loader (Versão Ultrafast Attack + Stand Colado 0.8 Studs + Sem Teleport de Volta)
+--// Y Hub Loader (Zero-Distance Attack + Owner Protection + Maximum Speed)
 local globalEnvironment = (getgenv and getgenv()) or _G
 local baseEnvironment = (getfenv and getfenv()) or _G
 local loaderConfig = globalEnvironment.YHubLoaderConfig
@@ -6,7 +6,15 @@ local loaderConfig = globalEnvironment.YHubLoaderConfig
 	or globalEnvironment.YAutoSignalLoaderConfig
 	or {}
 
---// 1. OTIMIZAÇÃO DE VELOCIDADE EXTREMA (Sem travamento de tempo)
+--// 1. DADOS DE IDENTIFICAÇÃO DO OWNER E SEGURANÇA
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+-- Define quem é o Owner (Quem executa o script é protegido contra hits)
+globalEnvironment.OwnerPlayerName = globalEnvironment.OwnerPlayerName or LocalPlayer.Name
+globalEnvironment.TargetPlayerName = globalEnvironment.TargetPlayerName or nil
+
+--// 2. OTIMIZAÇÃO DE VELOCIDADE E REMOÇÃO DE DELAYS
 if not globalEnvironment.__AntiLagApplied then
 	globalEnvironment.__AntiLagApplied = true
 
@@ -22,38 +30,44 @@ if not globalEnvironment.__AntiLagApplied then
 	end
 end
 
---// 2. POSICIONAMENTO COLADO AO EXTREMO (0.8 STUDS)
-globalEnvironment.TargetPlayerName = globalEnvironment.TargetPlayerName or nil
-
--- Calcula CFrame colado diretamente no inimigo sem recuo para o dono
+--// 3. POSICIONAMENTO COLADO (0.5 STUDS) E PROTEÇÃO DO OWNER
 globalEnvironment.GetSafeStandPosition = function(targetCharacter, customDistance)
 	if not targetCharacter or not targetCharacter:FindFirstChild("HumanoidRootPart") then
 		return nil
 	end
 
 	local targetRoot = targetCharacter.HumanoidRootPart
-	-- Distância de 0.8 studs (totalmente colado para não errar nenhum golpe)
-	local distance = tonumber(customDistance) or 0.8
+	-- Distância extremamente colada (0.5 studs)
+	local distance = tonumber(customDistance) or 0.5
 
+	-- Posiciona nas costas colado e olhando diretamente para o inimigo
 	local safeCFrame = targetRoot.CFrame * CFrame.new(0, 0, distance)
 	return CFrame.lookAt(safeCFrame.Position, targetRoot.Position)
 end
 
--- Busca de alvo focado
+-- Busca o alvo garantindo que JAMAIS seja o Owner ou você mesmo
 globalEnvironment.GetSpecificTarget = function(forcedName)
-	local Players = game:GetService("Players")
 	local targetName = forcedName or globalEnvironment.TargetPlayerName
-	
-	if not targetName or targetName == "" then 
-		return nil 
-	end
+	if not targetName or targetName == "" then return nil end
+
+	targetName = targetName:lower()
+	local ownerName = tostring(globalEnvironment.OwnerPlayerName):lower()
 
 	for _, player in ipairs(Players:GetPlayers()) do
-		if player ~= Players.LocalPlayer and (player.Name:lower():find(targetName:lower(), 1, true) or player.DisplayName:lower():find(targetName:lower(), 1, true)) then
-			if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-				local hum = player.Character:FindFirstChildOfClass("Humanoid")
-				if hum and hum.Health > 0 then
-					return player.Character
+		local pName = player.Name:lower()
+		local pDisplay = player.DisplayName:lower()
+
+		-- REGRA DE OURO: Ignora a si mesmo e ignora totalmente o Owner
+		local isSelf = (player == LocalPlayer)
+		local isOwner = (pName == ownerName or pDisplay == ownerName)
+
+		if not isSelf and not isOwner then
+			if pName:find(targetName, 1, true) or pDisplay:find(targetName, 1, true) then
+				if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+					local hum = player.Character:FindFirstChildOfClass("Humanoid")
+					if hum and hum.Health > 0 then
+						return player.Character
+					end
 				end
 			end
 		end
@@ -61,18 +75,18 @@ globalEnvironment.GetSpecificTarget = function(forcedName)
 	return nil
 end
 
---// 3. EXECUÇÃO DE ATAQUE ULTRA-RÁPIDO SEM RETORNO AO OWNER
+--// 4. LOOP DE ATAQUE EXTREMAMENTE RÁPIDO (HEARTBEAT + STEPPED)
 local RunService = game:GetService("RunService")
-local LocalPlayer = game:GetService("Players").LocalPlayer
 
 globalEnvironment.StartFastAttack = function()
 	if globalEnvironment.__FastAttackConn then return end
 
-	-- Garante fixação no alvo antes e durante a simulação física
-	globalEnvironment.__FastAttackConn = RunService.Stepped:Connect(function()
+	-- Atualiza posição e ataques a cada frame antes da simulação de física
+	globalEnvironment.__FastAttackConn = RunService.Heartbeat:Connect(function()
 		local targetChar = globalEnvironment.GetSpecificTarget()
 		if targetChar and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-			local fastCF = globalEnvironment.GetSafeStandPosition(targetChar, 0.8)
+			-- CFrame colado a 0.5 studs do alvo
+			local fastCF = globalEnvironment.GetSafeStandPosition(targetChar, 0.5)
 			if fastCF then
 				LocalPlayer.Character.HumanoidRootPart.CFrame = fastCF
 			end
@@ -87,12 +101,11 @@ globalEnvironment.StopFastAttack = function()
 	end
 end
 
--- Inicia o ciclo contínuo de ataque colado
+-- Inicia ataque ultrarrápido
 globalEnvironment.StartFastAttack()
 
---// 4. CONFIGURAÇÕES BASE DO FRAMEWORK
+--// 5. CONFIGURAÇÕES E VARIÁVEIS BASE DO FRAMEWORK
 local baseUrl = loaderConfig.BaseUrl or "https://raw.githubusercontent.com/GodErste/Y-Core/main/"
-local verbose = loaderConfig.Verbose == true
 local automaticCacheBust = tostring(math.floor(os.clock() * 1000000))
 
 local function getExecutorName()
@@ -100,12 +113,6 @@ local function getExecutorName()
 	if type(getter) ~= "function" then return "" end
 	local success, name = pcall(getter)
 	return success and tostring(name or "") or ""
-end
-
-local detectedExecutorName = getExecutorName()
-
-local function isPotassiumExecutor()
-	return string.find(string.lower(detectedExecutorName), "potassium", 1, true) ~= nil
 end
 
 local function callable(callback)
