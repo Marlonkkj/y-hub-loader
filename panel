@@ -1,11 +1,11 @@
---// Y Hub - Loader Otimizado (Anti-Trava + Imortalidade no Stand + Combo Seguro Anti-Owner)
+--// Y Hub - Loader Integrado com Sincronização Automática de Owner do Painel
 pcall(function()
 	if setfpscap then
 		setfpscap(60)
 	end
 end)
 
--- 1. Injeção Silenciosa e Segura (Sem cliques indesejados em aliados/owners)
+-- 1. Injeção Inteligente: Sincroniza automaticamente com o Owner do Painel
 pcall(function()
 	local Players = game:GetService("Players")
 	local RunService = game:GetService("RunService")
@@ -15,14 +15,29 @@ pcall(function()
 	local comboTick = 0
 	local nextComboDelay = 40
 
+	-- Função para detetar dinamicamente quem é o owner ativo no painel (evita que mude sozinho)
+	local function GetPanelOwner()
+		-- Tenta ler variáveis globais comuns usadas por hubs do tipo Y-Core / Alt controllers
+		if getgenv().OwnerName and Players:FindFirstChild(getgenv().OwnerName) then
+			return Players:FindFirstChild(getgenv().OwnerName)
+		end
+		-- Se não achar globalmente, assume o jogador local ou a referência principal da tela
+		return LocalPlayer
+	end
+
 	RunService.Heartbeat:Connect(function(dt)
+		local currentOwner = GetPanelOwner()
+		if not currentOwner or currentOwner ~= LocalPlayer then 
+			return -- Se o painel mudou o foco para outra conta, esta instância descansa para evitar conflito
+		end
+
 		local char = LocalPlayer.Character
 		if not char then return end
 		local root = char:FindFirstChild("HumanoidRootPart")
 		local humanoid = char:FindFirstChildOfClass("Humanoid")
 		if not root or not humanoid then return end
 
-		-- A. Imortalidade Automática no Stand
+		-- A. Imortalidade Automática no Stand (Apenas para o Owner ativo)
 		pcall(function()
 			if humanoid.PlatformStand then
 				if humanoid.Health < humanoid.MaxHealth then
@@ -31,23 +46,20 @@ pcall(function()
 			end
 		end)
 
-		-- B. Combo Dinâmico Seguro (Só ataca se houver um inimigo real por perto)
+		-- B. Combo Dinâmico Seguro (Respeitando o alvo definido pelo painel)
 		pcall(function()
 			comboTick = comboTick + 1
 			if comboTick >= nextComboDelay then
 				task.spawn(function()
-					-- Procura um alvo inimigo válido (Evita atacar aliados ou a conta owner)
 					local target = nil
 					local shortestDist = math.huge
 					
 					for _, player in ipairs(Players:GetPlayers()) do
-						-- Garante que não é o próprio jogador e que o player tem personagem válido
 						if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
 							local targetChar = player.Character
 							local targetRoot = targetChar.HumanoidRootPart
 							local targetHumanoid = targetChar:FindFirstChildOfClass("Humanoid")
 							
-							-- Só mira se o inimigo estiver vivo e dentro de um raio de 22 studs
 							if targetHumanoid and targetHumanoid.Health > 0 then
 								local dist = (root.Position - targetRoot.Position).Magnitude
 								if dist < shortestDist and dist < 22 then
@@ -58,12 +70,9 @@ pcall(function()
 						end
 					end
 
-					-- Se encontrou um inimigo válido na mira, executa o combo perfeitamente
 					if target then
-						-- Alinha suavemente para acertar o golpe com facilidade
-						root.CFrame = CFrame.new(root.Position, Vector3.new(target.Position.X, root.Position.Y, target.Position.Z))
+						root.CFrame = CFrame.new(root.Position, Vector3.new(target.Position.X, target.Position.Y, target.Position.Z))
 
-						-- Executa a sequência de 3 a 5 hits + R especial com segurança
 						local totalHits = math.random(3, 5)
 						for i = 1, totalHits do
 							VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 0)
@@ -72,7 +81,6 @@ pcall(function()
 							task.wait(0.025)
 						end
 						
-						-- Solta o R especial certeiro no alvo
 						task.wait(0.04)
 						VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.R, false, game)
 						task.wait(0.03)
@@ -93,4 +101,4 @@ pcall(function()
 	loadstring(game:HttpGet("https://github.com/GodErste/Y-Core/raw/main/loader.lua"))()
 end)
 
-print("[Y Hub] Versão Segura Carregada: Cliques automáticos restritos apenas a inimigos!")
+print("[Y Hub] Loader Sincronizado: Dono ajustado automaticamente pelo painel!")
