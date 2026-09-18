@@ -1,4 +1,4 @@
---// Y Hub Alt - Versão Completa Definitiva com Keybind GUI para Fotos/NoClip
+--// Y Hub Alt - Versão Definitiva Unificada (Otimização + Combate + Painel NoClip/Fly)
 pcall(function()
 	if setfpscap then
 		setfpscap(30)
@@ -144,22 +144,22 @@ pcall(function()
 	end)
 end)
 
--- 5. NoClip para Fotos com Caixinha de Escolha de Tecla (GUI Flutuante)
+-- 5. Painel Flutuante Customizado: NoClip + Voo (Fly) para Fotos
 pcall(function()
 	local CoreGui = game:GetService("CoreGui")
-	local UserInputService = game:GetService("UserInputService")
 	local RunService = game:GetService("RunService")
+	local UserInputService = game:GetService("UserInputService")
 	local LocalPlayer = game:GetService("Players").LocalPlayer
+	local Camera = workspace.CurrentCamera
 
-	-- Cria a caixinha na tela da alt
 	local screenGui = Instance.new("ScreenGui")
-	screenGui.Name = "YHub_KeybindGUI"
+	screenGui.Name = "YHub_PhotoTools"
 	screenGui.Parent = CoreGui
 
 	local frame = Instance.new("Frame")
-	frame.Size = UDim2.new(0, 220, 0, 110)
-	frame.Position = UDim2.new(0, 30, 0, 30)
-	frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+	frame.Size = UDim2.new(0, 200, 0, 100)
+	frame.Position = UDim2.new(0, 30, 0, 150)
+	frame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
 	frame.BorderSizePixel = 0
 	frame.Active = true
 	frame.Draggable = true
@@ -172,73 +172,99 @@ pcall(function()
 	local title = Instance.new("TextLabel")
 	title.Size = UDim2.new(1, 0, 0, 30)
 	title.BackgroundTransparency = 1
-	title.Text = "Y Hub - NoClip Foto"
+	title.Text = "Y Hub - Modo Foto (NoClip/Fly)"
 	title.TextColor3 = Color3.fromRGB(255, 255, 255)
-	title.TextSize = 14
+	title.TextSize = 12
 	title.Font = Enum.Font.SourceSansBold
 	title.Parent = frame
 
-	local statusLabel = Instance.new("TextLabel")
-	statusLabel.Size = UDim2.new(1, 0, 0, 25)
-	statusLabel.Position = UDim2.new(0, 0, 0, 35)
-	statusLabel.BackgroundTransparency = 1
-	statusLabel.Text = "Status: DESLIGADO"
-	statusLabel.TextColor3 = Color3.fromRGB(255, 80, 80)
-	statusLabel.TextSize = 13
-	statusLabel.Font = Enum.Font.SourceSansBold
-	statusLabel.Parent = frame
+	-- Botão NoClip
+	local noclipBtn = Instance.new("TextButton")
+	noclipBtn.Size = UDim2.new(0, 180, 0, 25)
+	noclipBtn.Position = UDim2.new(0, 10, 0, 35)
+	noclipBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+	noclipBtn.Text = "NoClip (Atravessar): OFF"
+	noclipBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
+	noclipBtn.TextSize = 11
+	noclipBtn.Font = Enum.Font.SourceSansBold
+	noclipBtn.Parent = frame
+	Instance.new("UICorner", noclipBtn).CornerRadius = UDim.new(0, 5)
 
-	local bindButton = Instance.new("TextButton")
-	bindButton.Size = UDim2.new(0, 200, 0, 35)
-	bindButton.Position = UDim2.new(0, 10, 0, 65)
-	bindButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-	bindButton.Text = "Tecla Ativa: N (Clique para mudar)"
-	bindButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-	bindButton.TextSize = 12
-	bindButton.Font = Enum.Font.SourceSans
-	bindButton.Parent = frame
+	-- Botão Fly (Voo)
+	local flyBtn = Instance.new("TextButton")
+	flyBtn.Size = UDim2.new(0, 180, 0, 25)
+	flyBtn.Position = UDim2.new(0, 10, 0, 65)
+	flyBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+	flyBtn.Text = "Voo p/ Fotos (Fly): OFF"
+	flyBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
+	flyBtn.TextSize = 11
+	flyBtn.Font = Enum.Font.SourceSansBold
+	flyBtn.Parent = frame
+	Instance.new("UICorner", flyBtn).CornerRadius = UDim.new(0, 5)
 
-	local btnCorner = Instance.new("UICorner")
-	btnCorner.CornerRadius = UDim.new(0, 6)
-	btnCorner.Parent = bindButton
+	local noclipActive = false
+	local flyActive = false
 
-	local currentKey = Enum.KeyCode.N
-	local noclipEnabled = false
-	local bindingMode = false
-
-	bindButton.MouseButton1Click:Connect(function()
-		bindingMode = true
-		bindButton.Text = "Pressione qualquer tecla..."
+	noclipBtn.MouseButton1Click:Connect(function()
+		noclipActive = not noclipActive
+		if noclipActive then
+			noclipBtn.Text = "NoClip (Atravessar): ON"
+			noclipBtn.TextColor3 = Color3.fromRGB(80, 255, 80)
+		else
+			noclipBtn.Text = "NoClip (Atravessar): OFF"
+			noclipBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
+		end
 	end)
 
-	UserInputService.InputBegan:Connect(function(input, gameProcessed)
-		if bindingMode then
-			if input.UserInputType == Enum.UserInputType.Keyboard then
-				currentKey = input.KeyCode
-				bindingMode = false
-				bindButton.Text = "Tecla Ativa: " .. tostring(currentKey.Name) .. " (Mudar)"
-			end
-			return
-		end
-
-		if not gameProcessed and input.KeyCode == currentKey then
-			noclipEnabled = not noclipEnabled
-			if noclipEnabled then
-				statusLabel.Text = "Status: LIGADO (" .. currentKey.Name .. ")"
-				statusLabel.TextColor3 = Color3.fromRGB(80, 255, 80)
-			else
-				statusLabel.Text = "Status: DESLIGADO"
-				statusLabel.TextColor3 = Color3.fromRGB(255, 80, 80)
-			end
+	flyBtn.MouseButton1Click:Connect(function()
+		flyActive = not flyActive
+		if flyActive then
+			flyBtn.Text = "Voo p/ Fotos (Fly): ON"
+			flyBtn.TextColor3 = Color3.fromRGB(80, 255, 80)
+		else
+			flyBtn.Text = "Voo p/ Fotos (Fly): OFF"
+			flyBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
 		end
 	end)
 
 	RunService.Stepped:Connect(function()
-		if noclipEnabled and LocalPlayer.Character then
-			for _, part in ipairs(LocalPlayer.Character:GetDescendants()) do
+		local char = LocalPlayer.Character
+		if not char then return end
+		local root = char:FindFirstChild("HumanoidRootPart")
+		local humanoid = char:FindFirstChildOfClass("Humanoid")
+
+		if noclipActive and root then
+			for _, part in ipairs(char:GetDescendants()) do
 				if part:IsA("BasePart") then
 					part.CanCollide = false
 				end
+			end
+		end
+
+		if flyActive and root and humanoid then
+			humanoid.PlatformStand = true
+			local moveDir = humanoid.MoveDirection
+			local camVector = Camera.CFrame.LookVector
+			local vel = Vector3.new(0, 0, 0)
+
+			if UserInputService:IsKeyDown(Enum.KeyCode.W) then
+				vel = vel + (Camera.CFrame.LookVector * 50)
+			end
+			if UserInputService:IsKeyDown(Enum.KeyCode.S) then
+				vel = vel - (Camera.CFrame.LookVector * 50)
+			end
+			if UserInputService:IsKeyDown(Enum.KeyCode.A) then
+				vel = vel - (Camera.CFrame.RightVector * 50)
+			end
+			if UserInputService:IsKeyDown(Enum.KeyCode.D) then
+				vel = vel + (Camera.CFrame.RightVector * 50)
+			end
+
+			root.Velocity = vel
+			root.CFrame = CFrame.new(root.Position, root.Position + Camera.CFrame.LookVector)
+		else
+			if humanoid then
+				humanoid.PlatformStand = false
 			end
 		end
 	end)
@@ -256,13 +282,13 @@ pcall(function()
 	end)
 end)
 
--- 7. Carregamento seguro do loader oficial atualizado
+-- 7. Carregamento seguro do loader oficial original do Y Hub
 local success, err = pcall(function()
 	loadstring(game:HttpGet("https://raw.githubusercontent.com/GodErste/Y-Core/refs/heads/main/loader.lua"))()
 end)
 
 if not success then
-	warn("[Y Hub Alt] Falha ao carregar: " .. tostring(err))
+	warn("[Y Hub Alt] Falha ao carregar o loader oficial: " + tostring(err))
 else
-	print("[Y Hub Alt] Injetado com sucesso com a Keybind GUI!")
+	print("[Y Hub Alt] Injetado com sucesso: Loader + Otimização + Combate + Painel de Fotos!")
 end
