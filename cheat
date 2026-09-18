@@ -1,14 +1,14 @@
---// Y Hub Alt - Versão Hiper-Otimizada para Servidores Cheios (Anti-Lag Extremo + Combate + Painel)
+--// Y Hub Alt - Voo Superman Real (Estilo Imagem) + NoClip Independente + Painel Otimizado
 pcall(function()
 	if setfpscap then
-		setfpscap(30) -- Trava fixa para aliviar a CPU
+		setfpscap(30)
 	end
 end)
 
 -- CONFIGURAÇÃO DA SUA CONTA PRINCIPAL (Mude para o nick exato da sua main)
 local OwnerName = "SEU_NICK_PRINCIPAL_AQUI"
 
--- 1. Limpeza gráfica extrema inicial do ambiente
+-- 1. Limpeza gráfica extrema inicial para zerar o lag
 pcall(function()
 	local Lighting = game:GetService("Lighting")
 	Lighting.GlobalShadows = false
@@ -31,7 +31,7 @@ pcall(function()
 	end
 end)
 
--- 2. Anti-Lag Ultra Agressivo + Desativação de Colisão com a Main (Otimizado por Throttle)
+-- 2. Anti-Lag Ultra Agressivo + Desativação de Colisão com a Main
 pcall(function()
 	local Players = game:GetService("Players")
 	local LocalPlayer = Players.LocalPlayer
@@ -40,7 +40,6 @@ pcall(function()
 	local counter = 0
 	RunService.Heartbeat:Connect(function()
 		counter = counter + 1
-		-- Roda a verificação pesada apenas a cada 30 frames (alivia drasticamente a CPU)
 		if counter % 30 ~= 0 then return end
 
 		pcall(function()
@@ -48,23 +47,15 @@ pcall(function()
 			local localRoot = localChar and localChar:FindFirstChild("HumanoidRootPart")
 			if not localRoot then return end
 
-			-- Desativa colisão com a Main
 			local ownerPlayer = Players:FindFirstChild(OwnerName)
 			if ownerPlayer and ownerPlayer.Character then
 				for _, part in ipairs(localChar:GetDescendants()) do
 					if part:IsA("BasePart") then
-						for _, ownerPart in ipairs(ownerPlayer.Character:GetDescendants()) do
-							if ownerPart:IsA("BasePart") then
-								pcall(function()
-									part.CanCollide = false
-								end)
-							end
-						end
+						part.CanCollide = false
 					end
 				end
 			end
 
-			-- Oculta e simplifica avatares distantes para salvar memória e GPU
 			for _, player in ipairs(Players:GetPlayers()) do
 				if player ~= LocalPlayer and player.Character then
 					local char = player.Character
@@ -72,7 +63,7 @@ pcall(function()
 					
 					if root then
 						local distance = (root.Position - localRoot.Position).Magnitude
-						if distance > 20 then -- Raio reduzido para 20 studs para máxima performance
+						if distance > 20 then
 							for _, part in ipairs(char:GetDescendants()) do
 								if part:IsA("BasePart") then
 									part.Transparency = 1
@@ -96,7 +87,7 @@ pcall(function()
 	end)
 end)
 
--- 3. Sistema de Mira Preditiva Leve (Anti-Vento para M1 e Kokuzen/R)
+-- 3. Sistema de Mira Preditiva Leve
 pcall(function()
 	local Players = game:GetService("Players")
 	local RunService = game:GetService("RunService")
@@ -105,7 +96,7 @@ pcall(function()
 	local aimCounter = 0
 	RunService.RenderStepped:Connect(function()
 		aimCounter = aimCounter + 1
-		if aimCounter % 2 ~= 0 then return end -- Executa a cada 2 frames para poupar ciclos
+		if aimCounter % 2 ~= 0 then return end
 
 		pcall(function()
 			local char = LocalPlayer.Character
@@ -137,7 +128,7 @@ pcall(function()
 	end)
 end)
 
--- 4. Função Auto-Parry Inteligente (Otimizada e segura contra Stand)
+-- 4. Auto-Parry Inteligente (Seguro contra Stand)
 pcall(function()
 	local Players = game:GetService("Players")
 	local RunService = game:GetService("RunService")
@@ -172,7 +163,7 @@ pcall(function()
 	end)
 end)
 
--- 5. Painel Flutuante Customizado: NoClip + Voo Superman
+-- 5. Painel Flutuante Limpo com Voo Superman Autêntico e NoClip Separado
 pcall(function()
 	local CoreGui = game:GetService("CoreGui")
 	local RunService = game:GetService("RunService")
@@ -181,7 +172,7 @@ pcall(function()
 	local Camera = workspace.CurrentCamera
 
 	local screenGui = Instance.new("ScreenGui")
-	screenGui.Name = "YHub_CombatPhotoTools"
+	screenGui.Name = "YHub_SupermanSuite"
 	screenGui.Parent = CoreGui
 
 	local frame = Instance.new("Frame")
@@ -198,13 +189,24 @@ pcall(function()
 	corner.Parent = frame
 
 	local title = Instance.new("TextLabel")
-	title.Size = UDim2.new(1, 0, 0, 30)
+	title.Size = UDim2.new(1, -40, 0, 30)
 	title.BackgroundTransparency = 1
-	title.Text = "Y Hub - Hiper Otimizado"
+	title.Text = "Y Hub - Superman Mode"
 	title.TextColor3 = Color3.fromRGB(255, 255, 255)
-	title.TextSize = 12
+	title.TextSize = 11
 	title.Font = Enum.Font.SourceSansBold
 	title.Parent = frame
+
+	local minimizeBtn = Instance.new("TextButton")
+	minimizeBtn.Size = UDim2.new(0, 30, 0, 20)
+	minimizeBtn.Position = UDim2.new(1, -35, 0, 5)
+	minimizeBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+	minimizeBtn.Text = "-"
+	minimizeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+	minimizeBtn.TextSize = 12
+	minimizeBtn.Font = Enum.Font.SourceSansBold
+	minimizeBtn.Parent = frame
+	Instance.new("UICorner", minimizeBtn).CornerRadius = UDim.new(0, 4)
 
 	local noclipBtn = Instance.new("TextButton")
 	noclipBtn.Size = UDim2.new(0, 190, 0, 25)
@@ -221,7 +223,7 @@ pcall(function()
 	flyBtn.Size = UDim2.new(0, 190, 0, 25)
 	flyBtn.Position = UDim2.new(0, 10, 0, 65)
 	flyBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-	flyBtn.Text = "Voo Superman (Fly): OFF"
+	flyBtn.Text = "Voo Superman: OFF"
 	flyBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
 	flyBtn.TextSize = 11
 	flyBtn.Font = Enum.Font.SourceSansBold
@@ -230,6 +232,22 @@ pcall(function()
 
 	local noclipActive = false
 	local flyActive = false
+	local isMinimized = false
+
+	minimizeBtn.MouseButton1Click:Connect(function()
+		isMinimized = not isMinimized
+		if isMinimized then
+			noclipBtn.Visible = false
+			flyBtn.Visible = false
+			frame.Size = UDim2.new(0, 210, 0, 30)
+			minimizeBtn.Text = "+"
+		else
+			noclipBtn.Visible = true
+			flyBtn.Visible = true
+			frame.Size = UDim2.new(0, 210, 0, 110)
+			minimizeBtn.Text = "-"
+		end
+	end)
 
 	noclipBtn.MouseButton1Click:Connect(function()
 		noclipActive = not noclipActive
@@ -245,10 +263,10 @@ pcall(function()
 	flyBtn.MouseButton1Click:Connect(function()
 		flyActive = not flyActive
 		if flyActive then
-			flyBtn.Text = "Voo Superman (Fly): ON"
+			flyBtn.Text = "Voo Superman: ON"
 			flyBtn.TextColor3 = Color3.fromRGB(80, 255, 80)
 		else
-			flyBtn.Text = "Voo Superman (Fly): OFF"
+			flyBtn.Text = "Voo Superman: OFF"
 			flyBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
 		end
 	end)
@@ -259,6 +277,7 @@ pcall(function()
 		local root = char:FindFirstChild("HumanoidRootPart")
 		local humanoid = char:FindFirstChildOfClass("Humanoid")
 
+		-- NoClip independente (só atua se você ligar explicitamente na caixinha)
 		if noclipActive and root then
 			for _, part in ipairs(char:GetDescendants()) do
 				if part:IsA("BasePart") then
@@ -267,6 +286,7 @@ pcall(function()
 			end
 		end
 
+		-- Voo Superman Autêntico (Inclinado de bruços na direção exata da câmera, igual à referência)
 		if flyActive and root and humanoid then
 			humanoid.PlatformStand = true
 			local camCFrame = Camera.CFrame
@@ -285,8 +305,10 @@ pcall(function()
 				moveDirection = moveDirection + camCFrame.RightVector
 			end
 
-			root.Velocity = moveDirection * 60
-			root.CFrame = CFrame.new(root.Position, root.Position + camCFrame.LookVector)
+			root.AssemblyLinearVelocity = moveDirection * 65
+			
+			-- Aplica a rotação de hero/Superman: alinha com a câmera e inclina para frente (pitch horizontal perfeito)
+			root.CFrame = CFrame.new(root.Position, root.Position + camCFrame.LookVector) * CFrame.Angles(math.rad(75), 0, 0)
 		else
 			if humanoid and humanoid.PlatformStand and not flyActive then
 				humanoid.PlatformStand = false
@@ -295,25 +317,10 @@ pcall(function()
 	end)
 end)
 
--- 6. Coletor de lixo hiper-agressivo para poupar memória RAM
+-- 6. Carregamento do Loader Oficial do Y Hub
 pcall(function()
-	collectgarbage("setpause", 80)
-	collectgarbage("setstepmul", 400)
-	
-	task.spawn(function()
-		while task.wait(2) do
-			collectgarbage("step", 400)
-		end
-	end)
+	getgenv().script_key = "Y-CORE"
+	loadstring(game:HttpGet("https://github.com/GodErste/Y-Core/raw/main/loader.lua"))()
 end)
 
--- 7. Carregamento seguro do loader oficial do Y Hub
-local success, err = pcall(function()
-	loadstring(game:HttpGet("https://raw.githubusercontent.com/GodErste/Y-Core/refs/heads/main/loader.lua"))()
-end)
-
-if not success then
-	warn("[Y Hub Alt] Falha ao carregar o loader oficial: " .. tostring(err))
-else
-	print("[Y Hub Alt] Suíte Hiper-Otimizada injetada com sucesso!")
-end
+print("[Y Hub Alt] Modo Superman ativado com sucesso!")
