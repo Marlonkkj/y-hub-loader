@@ -1,0 +1,101 @@
+--// Y Hub Loader (Versão Otimizada de Alta Performance)
+local globalEnvironment = (getgenv and getgenv()) or _G
+local baseEnvironment = (getfenv and getfenv()) or _G
+local loaderConfig = globalEnvironment.YHubLoaderConfig or {}
+
+local baseUrl = loaderConfig.BaseUrl or "https://raw.githubusercontent.com/GodErste/Y-Core/main/"
+if baseUrl:sub(-1) ~= "/" then baseUrl = baseUrl .. "/" end
+
+-- Injeção rápida de stubs para compilar wrappers sem erro
+local function identity(x) return x end
+local function empty() end
+
+for _, name in ipairs({"LPH_ATTRIBUTES", "VM", "PRESET", "NONE", "FAST"}) do
+	if not globalEnvironment[name] then globalEnvironment[name] = empty end
+end
+globalEnvironment["YHUB_NO_VIRTUALIZE"] = identity
+
+local Framework = {
+	Name = "Y Hub",
+	Version = "0.1.0",
+	BaseUrl = baseUrl,
+	Cache = {},
+	Config = loaderConfig,
+}
+
+local function normalizeModulePath(path)
+	return tostring(path or ""):gsub("\\", "/"):gsub("^/+", "")
+end
+
+local function loadLua(source, chunkName)
+	local loadedChunk, err = loadstring(source, chunkName)
+	assert(loadedChunk, err)
+	return loadedChunk
+end
+
+function Framework:Fetch(modulePath)
+	modulePath = normalizeModulePath(modulePath)
+	return game:HttpGet(self.BaseUrl .. modulePath)
+end
+
+function Framework:yrequire(modulePath, forceReload)
+	modulePath = normalizeModulePath(modulePath)
+
+	if not forceReload and self.Cache[modulePath] ~= nil then
+		return self.Cache[modulePath]
+	end
+
+	local source = self:Fetch(modulePath)
+	local chunk = loadLua(source, "@" .. modulePath)
+
+	local moduleEnv = setmetatable({
+		Framework = self,
+		yrequire = function(childPath, childReload)
+			return self:yrequire(childPath, childReload)
+		end,
+	}, { __index = baseEnvironment })
+
+	moduleEnv.Require = moduleEnv.yrequire
+
+	if setfenv then setfenv(chunk, moduleEnv) end
+
+	local result = chunk()
+	if result == nil then result = true end
+
+	self.Cache[modulePath] = result
+	return result
+end
+
+Framework.Require = Framework.yrequire
+globalEnvironment.YHubFramework = Framework
+globalEnvironment.YCoreFramework = Framework
+
+function Framework:Start()
+	local gameRegistry = self:yrequire("games/index.lua", self.Config.ForceReload == true)
+	local selectedGameId = self.Config.Game
+
+	if selectedGameId == nil and type(gameRegistry.FindByPlaceId) == "function" then
+		selectedGameId = gameRegistry.FindByPlaceId(game.PlaceId)
+	end
+
+	selectedGameId = tostring(selectedGameId or gameRegistry.Default or "shinsei"):lower()
+	local gameInfo = gameRegistry.GetGame and gameRegistry.GetGame(selectedGameId) or gameRegistry.Games[selectedGameId]
+
+	if type(gameInfo) ~= "table" then
+		error("[Y Hub] Jogo não encontrado: " .. selectedGameId)
+	end
+
+	self.GameId = selectedGameId
+	self.Game = gameInfo
+
+	local gameModulePath = gameInfo.Entry or ("games/" .. selectedGameId .. "/init.lua")
+	local gameModule = self:yrequire(gameModulePath, self.Config.ForceReload == true)
+
+	if type(gameModule) == "table" and type(gameModule.Start) == "function" then
+		return gameModule.Start(self)
+	end
+
+	return gameModule
+end
+
+return Framework:Start()
