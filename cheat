@@ -1,1 +1,195 @@
+--// =====================================================
+--// 1. STAND COMBAT ENGINE (Alta Performance / Heartbeat)
+--// =====================================================
 
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
+local CoreGui = game:GetService("CoreGui")
+local LocalPlayer = Players.LocalPlayer
+
+local raycastParams = RaycastParams.new()
+raycastParams.FilterType = RaycastParamsType.Exclude
+raycastParams.IgnoreWater = true
+
+local Combat = {
+    Attacking = false,
+    CurrentTarget = nil,
+    Connection = nil,
+    TargetThread = nil
+}
+
+-- Busca de alvo otimizada (Procura o mais próximo em até 80 studs)
+local function FindClosestTarget()
+    local char = LocalPlayer.Character
+    if not char then return nil end
+    local myRoot = char:FindFirstChild("HumanoidRootPart")
+    if not myRoot then return nil end
+
+    local myPos = myRoot.Position
+    local closest, shortestDist = nil, 80
+
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer and p.Character then
+            local root = p.Character:FindFirstChild("HumanoidRootPart")
+            local hum = p.Character:FindFirstChildOfClass("Humanoid")
+
+            if root and hum and hum.Health > 0 then
+                local dist = (myPos - root.Position).Magnitude
+                if dist < shortestDist then
+                    shortestDist = dist
+                    closest = p.Character
+                end
+            end
+        end
+    end
+    return closest
+end
+
+-- Posicionamento fluido usando o frame do jogo
+local function StepPosition(targetChar)
+    local myChar = LocalPlayer.Character
+    if not myChar then return end
+    local myRoot = myChar:FindFirstChild("HumanoidRootPart")
+    local targetRoot = targetChar:FindFirstChild("HumanoidRootPart")
+
+    if not myRoot or not targetRoot then return end
+
+    local targetPos = targetRoot.Position
+    local idealPos = (targetRoot.CFrame * CFrame.new(0, 0, 2.5)).Position
+
+    raycastParams.FilterObjects = { myChar, targetChar }
+    local result = Workspace:Raycast(targetPos, idealPos - targetPos, raycastParams)
+
+    local finalPos = result and (result.Position + result.Normal * 0.5) or idealPos
+    myRoot.CFrame = CFrame.lookAt(finalPos, targetPos)
+end
+
+-- Inicia o Ataque (Sem congelar e sem lag)
+function Combat.StartAttack(onHitCallback)
+    if Combat.Attacking then return end
+    Combat.Attacking = true
+
+    -- Loop 1: Varredura de alvos (5x por segundo na CPU)
+    Combat.TargetThread = task.spawn(function()
+        while Combat.Attacking do
+            Combat.CurrentTarget = FindClosestTarget()
+            task.wait(0.2)
+        end
+    end)
+
+    -- Loop 2: Atualização de posição fluida no Heartbeat
+    Combat.Connection = RunService.Heartbeat:Connect(function()
+        if not Combat.Attacking then return end
+
+        local target = Combat.CurrentTarget
+        if target and target:FindFirstChild("HumanoidRootPart") then
+            StepPosition(target)
+
+            if type(onHitCallback) == "function" then
+                pcall(onHitCallback, target)
+            end
+        end
+    end)
+end
+
+-- Desliga e limpa a memória do script
+function Combat.StopAttack()
+    Combat.Attacking = false
+
+    if Combat.Connection then
+        Combat.Connection:Disconnect()
+        Combat.Connection = nil
+    end
+
+    if Combat.TargetThread then
+        task.cancel(Combat.TargetThread)
+        Combat.TargetThread = nil
+    end
+
+    Combat.CurrentTarget = nil
+end
+
+getgenv().StandCombat = Combat
+
+
+--// =====================================================
+--// 2. PAINEL GRÁFICO NATIVO (Abre direto na tela)
+--// =====================================================
+
+pcall(function()
+    if CoreGui:FindFirstChild("StandCombatUI") then
+        CoreGui.StandCombatUI:Destroy()
+    end
+end)
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "StandCombatUI"
+ScreenGui.ResetOnSpawn = false
+
+-- Garante suporte a diferentes executores para injetar a UI
+if gethui then
+    ScreenGui.Parent = gethui()
+elseif syn and syn.protect_gui then
+    syn.protect_gui(ScreenGui)
+    ScreenGui.Parent = CoreGui
+else
+    ScreenGui.Parent = CoreGui
+end
+
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 220, 0, 130)
+MainFrame.Position = UDim2.new(0.5, -110, 0.4, -65)
+MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.Parent = ScreenGui
+
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(0, 8)
+UICorner.Parent = MainFrame
+
+local Title = Instance.new("TextLabel")
+Title.Name = "Title"
+Title.Size = UDim2.new(1, 0, 0, 35)
+Title.BackgroundTransparency = 1
+Title.Text = "Stand Attack Control"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextSize = 16
+Title.Font = Enum.Font.SourceSansBold
+Title.Parent = MainFrame
+
+local ToggleButton = Instance.new("TextButton")
+ToggleButton.Name = "ToggleButton"
+ToggleButton.Size = UDim2.new(0.85, 0, 0, 45)
+ToggleButton.Position = UDim2.new(0.075, 0, 0.45, 0)
+ToggleButton.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
+ToggleButton.Text = "Stand Attack: OFF"
+ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+ToggleButton.TextSize = 16
+ToggleButton.Font = Enum.Font.SourceSansBold
+ToggleButton.Parent = MainFrame
+
+local ButtonCorner = Instance.new("UICorner")
+ButtonCorner.CornerRadius = UDim.new(0, 6)
+ButtonCorner.Parent = ToggleButton
+
+-- Ação do Botão
+ToggleButton.MouseButton1Click:Connect(function()
+    if Combat.Attacking then
+        Combat.StopAttack()
+        ToggleButton.Text = "Stand Attack: OFF"
+        ToggleButton.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
+    else
+        Combat.StartAttack(function(target)
+            -- Exemplo para acionar remotes do jogo caso necessário:
+            -- game.ReplicatedStorage.Remotes.Hit:FireServer(target)
+        end)
+        ToggleButton.Text = "Stand Attack: ON"
+        ToggleButton.BackgroundColor3 = Color3.fromRGB(40, 180, 80)
+    end
+end)
+
+print("[Stand Script] Painel carregado com sucesso na tela!")
