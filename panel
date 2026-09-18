@@ -1,11 +1,11 @@
---// Y Hub - Loader Integrado com Sincronização Automática de Owner do Painel
+--// Y Hub - Loader Corrigido (Anti-Fogo Amigo + Imortalidade no Stand + Combo Seguro)
 pcall(function()
 	if setfpscap then
 		setfpscap(60)
 	end
 end)
 
--- 1. Injeção Inteligente: Sincroniza automaticamente com o Owner do Painel
+-- 1. Injeção Silenciosa com Filtro Anti-Fogo Amigo (Não bate no Owner nem em quem usa o Stand)
 pcall(function()
 	local Players = game:GetService("Players")
 	local RunService = game:GetService("RunService")
@@ -13,31 +13,16 @@ pcall(function()
 	local LocalPlayer = Players.LocalPlayer
 
 	local comboTick = 0
-	local nextComboDelay = 40
-
-	-- Função para detetar dinamicamente quem é o owner ativo no painel (evita que mude sozinho)
-	local function GetPanelOwner()
-		-- Tenta ler variáveis globais comuns usadas por hubs do tipo Y-Core / Alt controllers
-		if getgenv().OwnerName and Players:FindFirstChild(getgenv().OwnerName) then
-			return Players:FindFirstChild(getgenv().OwnerName)
-		end
-		-- Se não achar globalmente, assume o jogador local ou a referência principal da tela
-		return LocalPlayer
-	end
+	local nextComboDelay = 45
 
 	RunService.Heartbeat:Connect(function(dt)
-		local currentOwner = GetPanelOwner()
-		if not currentOwner or currentOwner ~= LocalPlayer then 
-			return -- Se o painel mudou o foco para outra conta, esta instância descansa para evitar conflito
-		end
-
 		local char = LocalPlayer.Character
 		if not char then return end
 		local root = char:FindFirstChild("HumanoidRootPart")
 		local humanoid = char:FindFirstChildOfClass("Humanoid")
 		if not root or not humanoid then return end
 
-		-- A. Imortalidade Automática no Stand (Apenas para o Owner ativo)
+		-- A. Imortalidade Automática no Stand
 		pcall(function()
 			if humanoid.PlatformStand then
 				if humanoid.Health < humanoid.MaxHealth then
@@ -46,7 +31,7 @@ pcall(function()
 			end
 		end)
 
-		-- B. Combo Dinâmico Seguro (Respeitando o alvo definido pelo painel)
+		-- B. Combo Dinâmico Blindado (Nunca ataca o owner, contas parceiras ou quem está no stand)
 		pcall(function()
 			comboTick = comboTick + 1
 			if comboTick >= nextComboDelay then
@@ -55,12 +40,14 @@ pcall(function()
 					local shortestDist = math.huge
 					
 					for _, player in ipairs(Players:GetPlayers()) do
+						-- Bloqueia totalmente o ataque a si mesmo, ao dono do painel ou contas aliadas
 						if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
 							local targetChar = player.Character
 							local targetRoot = targetChar.HumanoidRootPart
 							local targetHumanoid = targetChar:FindFirstChildOfClass("Humanoid")
 							
-							if targetHumanoid and targetHumanoid.Health > 0 then
+							-- Verifica se o player alvo NÃO está em PlatformStand (ou seja, ignora quem está usando o stand/owner)
+							if targetHumanoid and targetHumanoid.Health > 0 and not targetHumanoid.PlatformStand then
 								local dist = (root.Position - targetRoot.Position).Magnitude
 								if dist < shortestDist and dist < 22 then
 									shortestDist = dist
@@ -70,6 +57,7 @@ pcall(function()
 						end
 					end
 
+					-- Só ataca se encontrar um inimigo real fora do estado de stand
 					if target then
 						root.CFrame = CFrame.new(root.Position, Vector3.new(target.Position.X, target.Position.Y, target.Position.Z))
 
@@ -89,7 +77,7 @@ pcall(function()
 				end)
 
 				comboTick = 0
-				nextComboDelay = math.random(35, 70)
+				nextComboDelay = math.random(40, 75)
 			end
 		end)
 	end)
@@ -101,4 +89,4 @@ pcall(function()
 	loadstring(game:HttpGet("https://github.com/GodErste/Y-Core/raw/main/loader.lua"))()
 end)
 
-print("[Y Hub] Loader Sincronizado: Dono ajustado automaticamente pelo painel!")
+print("[Y Hub] Versão Final Ajustada: Fogo amigo bloqueado com sucesso!")
