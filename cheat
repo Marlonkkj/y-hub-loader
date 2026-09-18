@@ -1,15 +1,11 @@
---// Alt Account Optimizer & Command Executor - Modo Anti-Trava
-local RunService = game:GetService("RunService")
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-
+--// Y Hub Alt - Código Completo Final (Otimizado + Anti-Servidor Cheio + Loader)
 pcall(function()
 	if setfpscap then
-		setfpscap(20) -- Trava o FPS da alt para liberar recursos do PC
+		setfpscap(30) -- Trava o FPS da alt para aliviar totalmente a CPU
 	end
 end)
 
---// 1. Limpeza total de gráficos e elementos pesados na Alt para evitar crash
+-- 1. Otimização gráfica para a alt rodar sem engasgar
 pcall(function()
 	local Lighting = game:GetService("Lighting")
 	Lighting.GlobalShadows = false
@@ -32,7 +28,39 @@ pcall(function()
 	end
 end)
 
---// 2. Coletor de lixo agressivo para a Alt não acumular memória
+-- 2. Otimizador de Servidor Cheio: Remove renderização de acessórios de outros players distantes
+pcall(function()
+	local Players = game:GetService("Players")
+	local LocalPlayer = Players.LocalPlayer
+	local RunService = game:GetService("RunService")
+
+	RunService.Stepped:Connect(function()
+		pcall(function()
+			for _, player in ipairs(Players:GetPlayers()) do
+				if player ~= LocalPlayer and player.Character then
+					local char = player.Character
+					local root = char:FindFirstChild("HumanoidRootPart")
+					local localRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+					
+					if root and localRoot then
+						local distance = (root.Position - localRoot.Position).Magnitude
+						-- Se o player estiver a mais de 35 studs, esconde acessórios pesados para poupar FPS
+						if distance > 35 then
+							for _, part in ipairs(char:GetDescendants()) do
+								if part:IsA("Accessory") or part:IsA("Clothing") then
+									local handle = part:FindFirstChild("Handle")
+									if handle then handle.Transparency = 1 end
+								end
+							end
+						end
+					end
+				end
+			end
+		end)
+	end)
+end)
+
+-- 3. Coletor de lixo agressivo para evitar vazamento de memória na alt
 pcall(function()
 	collectgarbage("setpause", 150)
 	collectgarbage("setstepmul", 200)
@@ -44,16 +72,13 @@ pcall(function()
 	end)
 end)
 
---// 3. Executor de comandos isolado com respiro de thread (Evita o travamento)
-task.spawn(function()
-	while true do
-		-- O 'task.wait(0.05)' ou '0.1' dá um respiro essencial para o motor do Roblox processar 
-		-- o comando sem congelar a janela da conta alt.
-		pcall(function()
-			-- Insira aqui a sua lógica de comando ou chamada da alt de forma segura
-		end)
-		task.wait(0.08) 
-	end
+-- 4. Carregamento seguro do loader oficial com o link atualizado
+local success, err = pcall(function()
+	loadstring(game:HttpGet("https://raw.githubusercontent.com/GodErste/Y-Core/refs/heads/main/loader.lua"))()
 end)
 
-print("[Y Hub Alt] Conta secundária otimizada e blindada contra travamentos.")
+if not success then
+	warn("[Y Hub Alt] Falha ao carregar: " .. tostring(err))
+else
+	print("[Y Hub Alt] Injetado com sucesso, otimizado e protegido contra servidor cheio!")
+end
