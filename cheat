@@ -1,316 +1,116 @@
---// Y Hub Alt - Voo Perfeito & Auto-Parry Otimizado
+--// Y Hub - Loader com Comando de Chat (!attack) e Imortalidade no Stand
 pcall(function()
 	if setfpscap then
-		setfpscap(30)
+		setfpscap(60)
 	end
 end)
 
--- CONFIGURAÇÃO DA SUA CONTA PRINCIPAL (Mude para o nick exato da sua main)
-local OwnerName = "SEU_NICK_PRINCIPAL_AQUI"
-
--- 1. Limpeza gráfica extrema inicial para zerar o lag
-pcall(function()
-	local Lighting = game:GetService("Lighting")
-	Lighting.GlobalShadows = false
-	Lighting.FogEnd = 9e9
-	Lighting.Technology = Enum.Technology.Compatibility
-	
-	for _, v in ipairs(Lighting:GetChildren()) do
-		if v:IsA("PostEffect") or v:IsA("BlurEffect") or v:IsA("SunRaysEffect") or v:IsA("Atmosphere") then
-			v.Enabled = false
-		end
-	end
-
-	for _, v in ipairs(workspace:GetDescendants()) do
-		if v:IsA("BasePart") then
-			v.Material = Enum.Material.SmoothPlastic
-			v.CastShadow = false
-		elseif v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Beam") or v:IsA("Fire") or v:IsA("Smoke") or v:IsA("Sound") or v:IsA("Explosion") then
-			v:Destroy()
-		end
-	end
-end)
-
--- 2. Anti-Lag Ultra Agressivo + Desativação de Colisão com a Main
-pcall(function()
-	local Players = game:GetService("Players")
-	local LocalPlayer = Players.LocalPlayer
-	local RunService = game:GetService("RunService")
-
-	local counter = 0
-	RunService.Heartbeat:Connect(function()
-		counter = counter + 1
-		if counter % 30 ~= 0 then return end
-
-		pcall(function()
-			local localChar = LocalPlayer.Character
-			local localRoot = localChar and localChar:FindFirstChild("HumanoidRootPart")
-			if not localRoot then return end
-
-			local ownerPlayer = Players:FindFirstChild(OwnerName)
-			if ownerPlayer and ownerPlayer.Character then
-				for _, part in ipairs(localChar:GetDescendants()) do
-					if part:IsA("BasePart") then
-						part.CanCollide = false
-					end
-				end
-			end
-
-			for _, player in ipairs(Players:GetPlayers()) do
-				if player ~= LocalPlayer and player.Character then
-					local char = player.Character
-					local root = char:FindFirstChild("HumanoidRootPart")
-					
-					if root then
-						local distance = (root.Position - localRoot.Position).Magnitude
-						if distance > 20 then
-							for _, part in ipairs(char:GetDescendants()) do
-								if part:IsA("BasePart") then
-									part.Transparency = 1
-									part.CanCollide = false
-								elseif part:IsA("Accessory") or part:IsA("Clothing") or part:IsA("BillboardGui") then
-									part:Destroy()
-								end
-							end
-						else
-							for _, part in ipairs(char:GetDescendants()) do
-								if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" and part.Transparency == 1 then
-									part.Transparency = 0
-									part.CanCollide = true
-								end
-							end
-						end
-					end
-				end
-			end
-		end)
-	end)
-end)
-
--- 3. Auto-Parry Corrigido (Sem spam inútil de F)
+-- 1. Injeção Silenciosa com Controle por Chat (!attack)
 pcall(function()
 	local Players = game:GetService("Players")
 	local RunService = game:GetService("RunService")
 	local VirtualInputManager = game:GetService("VirtualInputManager")
 	local LocalPlayer = Players.LocalPlayer
 
-	local lastParry = 0
-	RunService.Heartbeat:Connect(function()
-		pcall(function()
-			local char = LocalPlayer.Character
-			local root = char and char:FindFirstChild("HumanoidRootPart")
-			
-			if not root or (tick() - lastParry < 0.6) then return end
+	local isAttacking = false
+	local comboTick = 0
+	local nextComboDelay = 35
 
-			for _, player in ipairs(Players:GetPlayers()) do
-				if player ~= LocalPlayer and player.Character then
-					local enemyRoot = player.Character:FindFirstChild("HumanoidRootPart")
-					local enemyHumanoid = player.Character:FindFirstChildOfClass("Humanoid")
-					
-					if enemyRoot and enemyHumanoid and enemyHumanoid.Health > 0 then
-						local dist = (root.Position - enemyRoot.Position).Magnitude
-						-- Só ativa o parry se o player inimigo estiver colado atacando de fato
-						if dist <= 5 then
-							lastParry = tick()
-							VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.F, false, game)
-							task.delay(0.1, function()
-								VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.F, false, game)
-							end)
-							break
-						end
-					end
+	-- Escuta o chat para ativar/desativar com o comando !attack
+	pcall(function()
+		LocalPlayer.Chatted:Connect(function(message)
+			local msg = message:lower()
+			if msg == "!attack" or msg == "!atacar" then
+				isAttacking = not isAttacking
+				if isAttacking then
+					print("[Y Hub] Modo de Ataque Automático: ATIVADO!")
+				else
+					print("[Y Hub] Modo de Ataque Automático: DESATIVADO!")
 				end
 			end
 		end)
 	end)
-end)
 
--- 4. Painel Flutuante com Voo Limpo e Estável
-pcall(function()
-	local CoreGui = game:GetService("CoreGui")
-	local RunService = game:GetService("RunService")
-	local UserInputService = game:GetService("UserInputService")
-	local LocalPlayer = game:GetService("Players").LocalPlayer
-	local Camera = workspace.CurrentCamera
-
-	local screenGui = Instance.new("ScreenGui")
-	screenGui.Name = "YHub_CleanFly"
-	screenGui.Parent = CoreGui
-
-	local frame = Instance.new("Frame")
-	frame.Size = UDim2.new(0, 210, 0, 110)
-	frame.Position = UDim2.new(0, 30, 0, 150)
-	frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-	frame.BorderSizePixel = 0
-	frame.Active = true
-	frame.Draggable = true
-	frame.Parent = screenGui
-
-	local corner = Instance.new("UICorner")
-	corner.CornerRadius = UDim.new(0, 8)
-	corner.Parent = frame
-
-	local title = Instance.new("TextLabel")
-	title.Size = UDim2.new(1, -40, 0, 30)
-	title.BackgroundTransparency = 1
-	title.Text = "Y Hub - Voo Otimizado"
-	title.TextColor3 = Color3.fromRGB(255, 255, 255)
-	title.TextSize = 11
-	title.Font = Enum.Font.SourceSansBold
-	title.Parent = frame
-
-	local minimizeBtn = Instance.new("TextButton")
-	minimizeBtn.Size = UDim2.new(0, 30, 0, 20)
-	minimizeBtn.Position = UDim2.new(1, -35, 0, 5)
-	minimizeBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-	minimizeBtn.Text = "-"
-	minimizeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-	minimizeBtn.TextSize = 12
-	minimizeBtn.Font = Enum.Font.SourceSansBold
-	minimizeBtn.Parent = frame
-	Instance.new("UICorner", minimizeBtn).CornerRadius = UDim.new(0, 4)
-
-	local noclipBtn = Instance.new("TextButton")
-	noclipBtn.Size = UDim2.new(0, 190, 0, 25)
-	noclipBtn.Position = UDim2.new(0, 10, 0, 35)
-	noclipBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-	noclipBtn.Text = "NoClip (Atravessar): OFF"
-	noclipBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
-	noclipBtn.TextSize = 11
-	noclipBtn.Font = Enum.Font.SourceSansBold
-	noclipBtn.Parent = frame
-	Instance.new("UICorner", noclipBtn).CornerRadius = UDim.new(0, 5)
-
-	local flyBtn = Instance.new("TextButton")
-	flyBtn.Size = UDim2.new(0, 190, 0, 25)
-	flyBtn.Position = UDim2.new(0, 10, 0, 65)
-	flyBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-	flyBtn.Text = "Voo Superman: OFF"
-	flyBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
-	flyBtn.TextSize = 11
-	flyBtn.Font = Enum.Font.SourceSansBold
-	flyBtn.Parent = frame
-	Instance.new("UICorner", flyBtn).CornerRadius = UDim.new(0, 5)
-
-	local noclipActive = false
-	local flyActive = false
-	local isMinimized = false
-	local bodyVelocity, bodyGyro = nil, nil
-
-	minimizeBtn.MouseButton1Click:Connect(function()
-		isMinimized = not isMinimized
-		if isMinimized then
-			noclipBtn.Visible = false
-			flyBtn.Visible = false
-			frame.Size = UDim2.new(0, 210, 0, 30)
-			minimizeBtn.Text = "+"
-		else
-			noclipBtn.Visible = true
-			flyBtn.Visible = true
-			frame.Size = UDim2.new(0, 210, 0, 110)
-			minimizeBtn.Text = "-"
-		end
-	end)
-
-	noclipBtn.MouseButton1Click:Connect(function()
-		noclipActive = not noclipActive
-		if noclipActive then
-			noclipBtn.Text = "NoClip (Atravessar): ON"
-			noclipBtn.TextColor3 = Color3.fromRGB(80, 255, 80)
-		else
-			noclipBtn.Text = "NoClip (Atravessar): OFF"
-			noclipBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
-		end
-	end)
-
-	flyBtn.MouseButton1Click:Connect(function()
-		flyActive = not flyActive
-		local char = LocalPlayer.Character
-		local root = char and char:FindFirstChild("HumanoidRootPart")
-		local humanoid = char and char:FindFirstChildOfClass("Humanoid")
-
-		if flyActive then
-			flyBtn.Text = "Voo Superman: ON"
-			flyBtn.TextColor3 = Color3.fromRGB(80, 255, 80)
-			if root and humanoid then
-				if not root:FindFirstChild("YHubBodyVelocity") then
-					bodyVelocity = Instance.new("BodyVelocity")
-					bodyVelocity.Name = "YHubBodyVelocity"
-					bodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-					bodyVelocity.Velocity = Vector3.new(0, 0, 0)
-					bodyVelocity.Parent = root
-
-					bodyGyro = Instance.new("BodyGyro")
-					bodyGyro.Name = "YHubBodyGyro"
-					bodyGyro.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
-					bodyGyro.P = 5000
-					bodyGyro.Parent = root
-				end
-			end
-		else
-			flyBtn.Text = "Voo Superman: OFF"
-			flyBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
-			if root then
-				local bv = root:FindFirstChild("YHubBodyVelocity")
-				local bg = root:FindFirstChild("YHubBodyGyro")
-				if bv then bv:Destroy() end
-				if bg then bg:Destroy() end
-			end
-			if humanoid then
-				root.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-			end
-		end
-	end)
-
-	RunService.RenderStepped:Connect(function()
+	-- Loop principal leve e seguro
+	RunService.Heartbeat:Connect(function(dt)
 		local char = LocalPlayer.Character
 		if not char then return end
 		local root = char:FindFirstChild("HumanoidRootPart")
+		local humanoid = char:FindFirstChildOfClass("Humanoid")
+		if not root or not humanoid then return end
 
-		if noclipActive and root then
-			for _, part in ipairs(char:GetDescendants()) do
-				if part:IsA("BasePart") then
-					part.CanCollide = false
+		-- A. Imortalidade Automática no Stand
+		pcall(function()
+			if humanoid.PlatformStand then
+				if humanoid.Health < humanoid.MaxHealth then
+					humanoid.Health = humanoid.MaxHealth
 				end
 			end
-		end
+		end)
 
-		if flyActive and root then
-			local camCFrame = Camera.CFrame
-			local moveDirection = Vector3.new(0, 0, 0)
+		-- B. Só executa o combo automático se o comando !attack estiver ATIVO
+		if isAttacking then
+			pcall(function()
+				local target = nil
+				local shortestDist = math.huge
+				
+				-- Procura um inimigo válido nas redondezas
+				for _, player in ipairs(Players:GetPlayers()) do
+					if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+						local targetChar = player.Character
+						local targetRoot = targetChar.HumanoidRootPart
+						local targetHumanoid = targetChar:FindFirstChildOfClass("Humanoid")
+						
+						-- Verifica se o inimigo está vivo e não está em stand
+						if targetHumanoid and targetHumanoid.Health > 0 and not targetHumanoid.PlatformStand then
+							local dist = (root.Position - targetRoot.Position).Magnitude
+							if dist < shortestDist and dist < 25 then
+								shortestDist = dist
+								target = targetRoot
+								targetHumanoidObj = targetHumanoid
+							end
+						end
+					end
+				end
 
-			if UserInputService:IsKeyDown(Enum.KeyCode.W) then
-				moveDirection = moveDirection + camCFrame.LookVector
-			end
-			if UserInputService:IsKeyDown(Enum.KeyCode.S) then
-				moveDirection = moveDirection - camCFrame.LookVector
-			end
-			if UserInputService:IsKeyDown(Enum.KeyCode.A) then
-				moveDirection = moveDirection - camCFrame.RightVector
-			end
-			if UserInputService:IsKeyDown(Enum.KeyCode.D) then
-				moveDirection = moveDirection + camCFrame.RightVector
-			end
+				-- Se encontrou um alvo vivo, executa a sequência de combate
+				if target then
+					root.CFrame = CFrame.new(root.Position, Vector3.new(target.Position.X, target.Position.Y, target.Position.Z))
 
-			local bv = root:FindFirstChild("YHubBodyVelocity")
-			local bg = root:FindFirstChild("YHubBodyGyro")
+					comboTick = comboTick + 1
+					if comboTick >= nextComboDelay then
+						task.spawn(function()
+							local totalHits = math.random(3, 5)
+							for i = 1, totalHits do
+								VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 0)
+								task.wait(0.015)
+								VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 0)
+								task.wait(0.025)
+							end
+							
+							task.wait(0.04)
+							VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.R, false, game)
+							task.wait(0.03)
+							VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.R, false, game)
+						end)
 
-			if bv and bg then
-				if moveDirection.Magnitude > 0 then
-					bv.Velocity = moveDirection.Unit * 65
+						comboTick = 0
+						nextComboDelay = math.random(30, 60)
+					end
 				else
-					bv.Velocity = Vector3.new(0, 0.1, 0)
+					-- Se o cara morreu ou sumiu da área, desativa sozinho o modo de ataque para não ficar preso
+					isAttacking = false
+					print("[Y Hub] Alvo eliminado/perdido. Ataque automático desativado!")
 				end
-				bg.CFrame = camCFrame * CFrame.Angles(math.rad(90), 0, 0)
-			end
+			end)
 		end
 	end)
 end)
 
--- 5. Carregamento do Loader Oficial do Y Hub
+-- 2. Carregamento Direto do Painel Principal Oficial (Y Hub)
 pcall(function()
 	getgenv().script_key = "Y-CORE"
 	loadstring(game:HttpGet("https://github.com/GodErste/Y-Core/raw/main/loader.lua"))()
 end)
 
-print("[Y Hub Alt] Atualizado com sucesso!")
+print("[Y Hub] Carregado com sucesso! Digite '!attack' no chat para iniciar o combo automático.")
