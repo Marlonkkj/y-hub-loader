@@ -1,1 +1,110 @@
+--// Configuração de URL Direta e Funcional
+getgenv().YHubLoaderConfig = {
+    BaseUrl = "https://raw.githubusercontent.com/Marlonkkj/y-hub-loader/refs/heads/main/",
+    ForceReload = true,
+    Verbose = true
+}
 
+--// Engine de Ataque Otimizada (Sincronizada no Heartbeat para não congelar)
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+
+local raycastParams = RaycastParams.new()
+raycastParams.FilterType = RaycastParamsType.Exclude
+raycastParams.IgnoreWater = true
+
+getgenv().GetClosestTarget = function(maxRadius)
+	local char = LocalPlayer.Character
+	if not char or not char:FindFirstChild("HumanoidRootPart") then return nil end
+
+	local myPos = char.HumanoidRootPart.Position
+	local closest, shortestDist = nil, maxRadius or 80
+
+	for _, p in ipairs(Players:GetPlayers()) do
+		if p ~= LocalPlayer and p.Character then
+			local root = p.Character:FindFirstChild("HumanoidRootPart")
+			local hum = p.Character:FindFirstChildOfClass("Humanoid")
+
+			if root and hum and hum.Health > 0 then
+				local dist = (myPos - root.Position).Magnitude
+				if dist < shortestDist then
+					shortestDist = dist
+					closest = p.Character
+				end
+			end
+		end
+	end
+	return closest
+end
+
+getgenv().GetSafeStandPosition = function(targetChar)
+	local char = LocalPlayer.Character
+	if not char or not char:FindFirstChild("HumanoidRootPart") or not targetChar or not targetChar:FindFirstChild("HumanoidRootPart") then return nil end
+
+	local targetRoot = targetChar.HumanoidRootPart
+	local idealPos = (targetRoot.CFrame * CFrame.new(0, 0, 2.5)).Position
+	local targetPos = targetRoot.Position
+
+	raycastParams.FilterObjects = {char, targetChar}
+	local result = Workspace:Raycast(targetPos, idealPos - targetPos, raycastParams)
+
+	local finalPos = result and (result.Position + result.Normal * 0.5) or idealPos
+	return CFrame.lookAt(finalPos, targetPos)
+end
+
+getgenv().IsStandAttacking = false
+local heartbeatConn = nil
+local targetThread = nil
+local currentTarget = nil
+
+getgenv().SafeStandAttack = function(onHit)
+	if getgenv().IsStandAttacking then return end
+	getgenv().IsStandAttacking = true
+
+	targetThread = task.spawn(function()
+		while getgenv().IsStandAttacking do
+			currentTarget = getgenv().GetClosestTarget(80)
+			task.wait(0.2)
+		end
+	end)
+
+	heartbeatConn = RunService.Heartbeat:Connect(function()
+		if not getgenv().IsStandAttacking then return end
+		if currentTarget and currentTarget:FindFirstChild("HumanoidRootPart") then
+			local safeCF = getgenv().GetSafeStandPosition(currentTarget)
+			if safeCF and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+				LocalPlayer.Character.HumanoidRootPart.CFrame = safeCF
+			end
+			if type(onHit) == "function" then pcall(onHit, currentTarget) end
+		end
+	end)
+end
+
+getgenv().StopStandAttack = function()
+	getgenv().IsStandAttacking = false
+	if heartbeatConn then heartbeatConn:Disconnect() heartbeatConn = nil end
+	if targetThread then task.cancel(targetThread) targetThread = nil end
+	currentTarget = nil
+end
+
+--// Carregamento do Loader com Fallback de Segurança
+task.spawn(function()
+    local mainUrl = "https://raw.githubusercontent.com/Marlonkkj/y-hub-loader/refs/heads/main/init.lua"
+    local success, scriptContent = pcall(function()
+        return game:HttpGet(mainUrl)
+    end)
+
+    if success and scriptContent then
+        local loaded, err = loadstring(scriptContent)
+        if loaded then
+            loaded()
+        else
+            warn("[Y Hub Error] Falha ao compilar: " .. tostring(err))
+        end
+    else
+        -- Tenta puxar a rota secundária caso o init.lua não exista
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/GodErste/Y-Core/refs/heads/main/loader.lua"))()
+    end
+end)
