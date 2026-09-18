@@ -1,1 +1,155 @@
+--// Y Hub Loader (Versão com Proteção Anti-Lag e Otimização de Performance)
+local globalEnvironment = (getgenv and getgenv()) or _G
+local baseEnvironment = (getfenv and getfenv()) or _G
+local loaderConfig = globalEnvironment.YHubLoaderConfig or globalEnvironment.YCoreLoaderConfig or {}
 
+--// 1. APLICAR PROTEÇÃO ANTI-LAG PARA LOOPS DO STAND
+-- Força uma pausa mínima em todos os loops e chamadas para aliviar a CPU
+if not globalEnvironment.__AntiLagApplied then
+	globalEnvironment.__AntiLagApplied = true
+
+	local rawWait = task.wait
+	globalEnvironment.task.wait = function(seconds)
+		-- Garante que nenhum loop rode com menos de 0.05s de intervalo (~20 FPS para tarefas em segundo plano)
+		local sec = tonumber(seconds) or 0
+		return rawWait(math.max(sec, 0.05))
+	end
+
+	if type(globalEnvironment.wait) == "function" then
+		globalEnvironment.wait = function(seconds)
+			local sec = tonumber(seconds) or 0
+			return rawWait(math.max(sec, 0.05))
+		end
+	end
+end
+
+--// 2. INICIALIZAÇÃO DO LOADER
+local baseUrl = loaderConfig.BaseUrl or "https://raw.githubusercontent.com/GodErste/Y-Core/main/"
+if baseUrl:sub(-1) ~= "/" then baseUrl = baseUrl .. "/" end
+
+-- Stubs rápidos de compatibilidade para evitar falhas de compilação
+local function identity(x) return x end
+local function empty() end
+
+for _, name in ipairs({"LPH_ATTRIBUTES", "VM", "PRESET", "NONE", "FAST"}) do
+	if not globalEnvironment[name] then globalEnvironment[name] = empty end
+end
+globalEnvironment["YHUB_NO_VIRTUALIZE"] = identity
+
+local Framework = {
+	Name = "Y Hub",
+	Version = "0.1.0",
+	BaseUrl = baseUrl,
+	Cache = {},
+	Config = loaderConfig,
+}
+
+local function normalizeModulePath(path)
+	return tostring(path or ""):gsub("\\", "/"):gsub("^/+", "")
+end
+
+local function loadLua(source, chunkName)
+	local loadedChunk, err = loadstring(source, chunkName)
+	assert(loadedChunk, err)
+	return loadedChunk
+end
+
+function Framework:Fetch(modulePath)
+	modulePath = normalizeModulePath(modulePath)
+	return game:HttpGet(self.BaseUrl .. modulePath)
+end
+
+function Framework:FetchUrl(url)
+	return game:HttpGet(tostring(url))
+end
+
+function Framework:LoadUrl(url, chunkName)
+	local source = self:FetchUrl(url)
+	local chunk = loadLua(source, chunkName or ("@" .. tostring(url)))
+	local moduleEnv = setmetatable({
+		Framework = self,
+		yrequire = function(childPath, childReload) return self:yrequire(childPath, childReload) end,
+	}, { __index = baseEnvironment })
+	
+	moduleEnv.Require = moduleEnv.yrequire
+	if setfenv then setfenv(chunk, moduleEnv) end
+	return chunk()
+end
+
+function Framework:yrequire(modulePath, forceReload)
+	modulePath = normalizeModulePath(modulePath)
+
+	if not forceReload and self.Cache[modulePath] ~= nil then
+		return self.Cache[modulePath]
+	end
+
+	local source = self:Fetch(modulePath)
+	local chunk = loadLua(source, "@" .. modulePath)
+
+	local moduleEnv = setmetatable({
+		Framework = self,
+		yrequire = function(childPath, childReload)
+			return self:yrequire(childPath, childReload)
+		end,
+	}, { __index = baseEnvironment })
+
+	moduleEnv.Require = moduleEnv.yrequire
+
+	if setfenv then setfenv(chunk, moduleEnv) end
+
+	local result = chunk()
+	if result == nil then result = true end
+
+	self.Cache[modulePath] = result
+	return result
+end
+
+Framework.Require = Framework.yrequire
+globalEnvironment.YHubFramework = Framework
+globalEnvironment.YCoreFramework = Framework
+
+--// 3. EXECUÇÃO DO FRAMEWORK E CARREGAMENTO DO JOGO
+function Framework:Start()
+	local gameRegistry = self:yrequire("games/index.lua", self.Config.ForceReload == true)
+	local selectedGameId = self.Config.Game
+
+	if selectedGameId == nil and type(gameRegistry.FindByPlaceId) == "function" then
+		selectedGameId = gameRegistry.FindByPlaceId(game.PlaceId)
+	end
+
+	selectedGameId = tostring(selectedGameId or gameRegistry.Default or "shinsei"):lower()
+	local gameInfo = type(gameRegistry.GetGame) == "function" and gameRegistry.GetGame(selectedGameId) or (gameRegistry.Games and gameRegistry.Games[selectedGameId])
+
+	if type(gameInfo) ~= "table" then
+		error("[Y Hub] Jogo não encontrado: " .. tostring(selectedGameId))
+	end
+
+	self.GameId = selectedGameId
+	self.Game = gameInfo
+
+	local sourceMode = self.Config.SourceMode == true
+	local gameModule
+
+	if sourceMode then
+		local gameModulePath = gameInfo.Entry or ("games/" .. selectedGameId .. "/init.lua")
+		gameModule = self:yrequire(gameModulePath, self.Config.ForceReload == true)
+	else
+		local bundleUrl = gameInfo.BundleUrl or gameInfo.BuildUrl or gameInfo.LoaderUrl
+		if bundleUrl then
+			gameModule = self:LoadUrl(bundleUrl, "@" .. selectedGameId .. ".bundle")
+		elseif gameInfo.Loader then
+			gameModule = self:yrequire(gameInfo.Loader, self.Config.ForceReload == true)
+		else
+			local gameModulePath = gameInfo.Entry or ("games/" .. selectedGameId .. "/init.lua")
+			gameModule = self:yrequire(gameModulePath, self.Config.ForceReload == true)
+		end
+	end
+
+	if type(gameModule) == "table" and type(gameModule.Start) == "function" then
+		return gameModule.Start(self)
+	end
+
+	return gameModule
+end
+
+return Framework:Start()
