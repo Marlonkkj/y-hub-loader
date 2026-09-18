@@ -1,201 +1,59 @@
---// Y Hub Loader (Ultra Proximity + Max Attack Speed Edition)
-local globalEnvironment = (getgenv and getgenv()) or _G
-local baseEnvironment = (getfenv and getfenv()) or _G
-local loaderConfig = globalEnvironment.YHubLoaderConfig
-	or globalEnvironment.YCoreLoaderConfig
-	or globalEnvironment.YAutoSignalLoaderConfig
-	or {}
-
---// 1. OUVINTE DO CHAT EM TEMPO REAL (!attack <nome> / !unattack)
-local Players = game:GetService("Players")
+--// Alt Account Loader & Command Executor - Versão Completa Otimizada
 local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
+local Workspace = game:GetService("Workspace")
 
-globalEnvironment.TargetPlayerName = nil
-
-local function onChatted(message)
-	local msg = string.lower(message)
-	
-	if string.sub(msg, 1, 8) == "!attack " then
-		local targetInput = string.sub(message, 9)
-		targetInput = targetInput:match("^%s*(.-)%s*$")
-		
-		if targetInput and targetInput ~= "" then
-			globalEnvironment.TargetPlayerName = targetInput
-			print("[Y Hub] Alvo definido: " .. targetInput)
-		end
-	elseif msg == "!unattack" or msg == "!stop" then
-		globalEnvironment.TargetPlayerName = nil
-		print("[Y Hub] Ataque cancelado.")
+-- 1. Trava o FPS da alt para liberar recursos da máquina
+pcall(function()
+	if setfpscap then
+		setfpscap(30)
 	end
-end
+end)
 
-if LocalPlayer then
-	LocalPlayer.Chatted:Connect(onChatted)
-end
+-- 2. Limpeza total de gráficos e elementos pesados na Alt para evitar travamentos
+pcall(function()
+	local Lighting = game:GetService("Lighting")
+	Lighting.GlobalShadows = false
+	Lighting.FogEnd = 9e9
+	Lighting.Technology = Enum.Technology.Compatibility
+	
+	for _, v in ipairs(Lighting:GetChildren()) do
+		if v:IsA("PostEffect") or v:IsA("BlurEffect") or v:IsA("SunRaysEffect") then
+			v.Enabled = false
+		end
+	end
 
-Players.PlayerAdded:Connect(function(player)
-	player.Chatted:Connect(function(msg)
-		if player == LocalPlayer then
-			onChatted(msg)
+	for _, v in ipairs(Workspace:GetDescendants()) do
+		if v:IsA("BasePart") then
+			v.Material = Enum.Material.SmoothPlastic
+			v.CastShadow = false
+		elseif v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Beam") or v:IsA("Fire") or v:IsA("Smoke") then
+			v:Destroy()
+		end
+	end
+end)
+
+-- 3. Coletor de lixo agressivo para a Alt não acumular memória
+pcall(function()
+	collectgarbage("setpause", 150)
+	collectgarbage("setstepmul", 200)
+	
+	task.spawn(function()
+		while task.wait(5) do
+			collectgarbage("step", 150)
 		end
 	end)
 end)
 
---// 2. POSICIONAMENTO ULTRA PRÓXIMO (1.0 STUDS) + BUSCA DE ALVO
-globalEnvironment.GetSafeStandPosition = function(targetCharacter, customDistance)
-	if not targetCharacter or not targetCharacter:FindFirstChild("HumanoidRootPart") then
-		return nil
+-- 4. Executor de comandos isolado com respiro de thread
+task.spawn(function()
+	while true do
+		pcall(function()
+			-- Insira aqui a lógica dos comandos da sua alt se necessário
+		end)
+		task.wait(0.1) 
 	end
+end)
 
-	local targetRoot = targetCharacter.HumanoidRootPart
-	-- Distância extremamente curta (1.0 stud) para colar completamente no inimigo
-	local distance = tonumber(customDistance) or 1.0
-
-	local safeCFrame = targetRoot.CFrame * CFrame.new(0, 0, distance)
-	return CFrame.lookAt(safeCFrame.Position, targetRoot.Position)
-end
-
-globalEnvironment.GetSpecificTarget = function()
-	local targetName = globalEnvironment.TargetPlayerName
-	if not targetName or targetName == "" then return nil end
-
-	targetName = targetName:lower()
-
-	for _, player in ipairs(Players:GetPlayers()) do
-		if player ~= LocalPlayer then
-			local pName = player.Name:lower()
-			local pDisplay = player.DisplayName:lower()
-
-			if pName:find(targetName, 1, true) or pDisplay:find(targetName, 1, true) then
-				if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-					local hum = player.Character:FindFirstChildOfClass("Humanoid")
-					if hum and hum.Health > 0 then
-						return player.Character
-					end
-				end
-			end
-		end
-	end
-	return nil
-end
-
---// 3. EXECUÇÃO INSTANTÂNEA E ULTRA RÁPIDA (RENDERSTEPPED)
-if not globalEnvironment.__FastAttackLoopApplied then
-	globalEnvironment.__FastAttackLoopApplied = true
-
-	-- Movimentação e atualização máxima por frame do jogo
-	RunService.RenderStepped:Connect(function()
-		local targetChar = globalEnvironment.GetSpecificTarget()
-		if targetChar and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-			local targetCFrame = globalEnvironment.GetSafeStandPosition(targetChar)
-			if targetCFrame then
-				LocalPlayer.Character.HumanoidRootPart.CFrame = targetCFrame
-			end
-		end
-	end)
-end
-
---// 4. CONFIGURAÇÕES BASE DO FRAMEWORK
-local baseUrl = loaderConfig.BaseUrl or "https://raw.githubusercontent.com/GodErste/Y-Core/main/"
-local verbose = loaderConfig.Verbose == true
-local automaticCacheBust = tostring(math.floor(os.clock() * 1000000))
-
-local function getExecutorName()
-	local getter = identifyexecutor or getexecutorname
-	if type(getter) ~= "function" then return "" end
-	local success, name = pcall(getter)
-	return success and tostring(name or "") or ""
-end
-
-local function callable(callback)
-	if type(callback) == "function" then return callback end
-	if type(callback) == "table" then
-		return function(...)
-			local success, a = pcall(callback, ...)
-			return success and a or nil
-		end
-	end
-	return function() end
-end
-
-local function ensureFunction(env, name, fallback)
-	if type(env[name]) ~= "function" then env[name] = fallback end
-	return env[name]
-end
-
-ensureFunction(globalEnvironment, "LPH_ATTRIBUTES", function() end)
-ensureFunction(globalEnvironment, "VM", function() end)
-ensureFunction(globalEnvironment, "PRESET", function() end)
-ensureFunction(globalEnvironment, "NONE", function() end)
-ensureFunction(globalEnvironment, "FAST", function() end)
-
-if baseUrl:sub(-1) ~= "/" then baseUrl = baseUrl .. "/" end
-
-local Framework = {
-	Name = "Y Hub",
-	Version = "0.1.0",
-	BaseUrl = baseUrl,
-	Cache = {},
-	Config = loaderConfig,
-	StartedAt = os.clock(),
-}
-
-globalEnvironment.YHubFramework = Framework
-globalEnvironment.YCoreFramework = Framework
-
-local function normalizeModulePath(modulePath)
-	return tostring(modulePath or ""):gsub("\\", "/"):gsub("^/+", "")
-end
-
-local function withCacheBust(url)
-	if loaderConfig.NoCacheBust == true then return url end
-	local sep = string.find(url, "?", 1, true) and "&" or "?"
-	return url .. sep .. "v=" .. automaticCacheBust
-end
-
-function Framework:Fetch(modulePath)
-	return game:HttpGet(withCacheBust(self.BaseUrl .. normalizeModulePath(modulePath)))
-end
-
-function Framework:FetchUrl(url)
-	return game:HttpGet(withCacheBust(tostring(url)))
-end
-
-function Framework:yrequire(modulePath, forceReload)
-	modulePath = normalizeModulePath(modulePath)
-	if not forceReload and self.Cache[modulePath] ~= nil then
-		return self.Cache[modulePath]
-	end
-
-	local source = self:Fetch(modulePath)
-	local loadedChunk = loadstring(source, "@" .. modulePath)
-	local result = loadedChunk()
-	if result == nil then result = true end
-
-	self.Cache[modulePath] = result
-	return result
-end
-
-Framework.Require = Framework.yrequire
-
-function Framework:Start()
-	local startSuccess, startResult = pcall(function()
-		local gameRegistry = self:yrequire("games/index.lua", self.Config.ForceReload == true)
-		local selectedGameId = tostring(self.Config.Game or gameRegistry.Default or "shinsei"):lower()
-		local gameInfo = gameRegistry.GetGame and gameRegistry.GetGame(selectedGameId) or gameRegistry.Games[selectedGameId]
-
-		local gameModulePath = gameInfo.Entry or ("games/" .. selectedGameId .. "/init.lua")
-		local gameModule = self:yrequire(gameModulePath, self.Config.ForceReload == true)
-
-		if type(gameModule) == "table" and type(gameModule.Start) == "function" then
-			return gameModule.Start(self)
-		end
-
-		return gameModule
-	end)
-
-	return startResult
-end
-
-return Framework:Start()
+print("[Y Hub Alt] Código carregado e injetado com sucesso!")
