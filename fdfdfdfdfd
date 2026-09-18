@@ -1,1 +1,244 @@
+--// =====================================================
+--// 1. LOADER Y HUB (Inicialização Segura e Sem Travar)
+--// =====================================================
 
+local globalEnvironment = (getgenv and getgenv()) or _G
+local baseEnvironment = (getfenv and getfenv()) or _G
+
+-- Configuração do Loader
+globalEnvironment.YHubLoaderConfig = globalEnvironment.YHubLoaderConfig or {
+	BaseUrl = "https://raw.githubusercontent.com/GodErste/Y-Core/main/",
+	Verbose = true,
+	NoCacheBust = false,
+	ForceReload = true
+}
+
+local loaderConfig = globalEnvironment.YHubLoaderConfig
+local baseUrl = loaderConfig.BaseUrl
+local automaticCacheBust = tostring(math.floor(os.clock() * 1000000))
+
+local function callable(callback)
+	if type(callback) == "function" then return callback end
+	return function() end
+end
+
+local function attribute() return nil end
+
+local function ensureFunction(env, name, fallback)
+	if type(env[name]) ~= "function" then env[name] = fallback end
+	return env[name]
+end
+
+ensureFunction(globalEnvironment, "LPH_ATTRIBUTES", attribute)
+ensureFunction(globalEnvironment, "VM", attribute)
+ensureFunction(globalEnvironment, "PRESET", attribute)
+ensureFunction(globalEnvironment, "NONE", attribute)
+ensureFunction(globalEnvironment, "FAST", attribute)
+globalEnvironment["YHUB_NO_VIRTUALIZE"] = function(cb) return callable(cb) end
+
+ensureFunction(baseEnvironment, "LPH_ATTRIBUTES", globalEnvironment["LPH_ATTRIBUTES"])
+ensureFunction(baseEnvironment, "VM", globalEnvironment["VM"])
+ensureFunction(baseEnvironment, "PRESET", globalEnvironment["PRESET"])
+ensureFunction(baseEnvironment, "NONE", globalEnvironment["NONE"])
+ensureFunction(baseEnvironment, "FAST", globalEnvironment["FAST"])
+
+if baseUrl:sub(-1) ~= "/" then baseUrl = baseUrl .. "/" end
+
+local Framework = {
+	Name = "Y Hub",
+	Version = "0.1.0",
+	BaseUrl = baseUrl,
+	Cache = {},
+	Config = loaderConfig,
+	StartedAt = os.clock(),
+}
+
+globalEnvironment.YHubFramework = Framework
+globalEnvironment.YCoreFramework = Framework
+
+local function withCacheBust(url)
+	if loaderConfig.NoCacheBust then return url end
+	local sep = string.find(url, "?", 1, true) and "&" or "?"
+	return url .. sep .. "v=" .. automaticCacheBust
+end
+
+function Framework:Fetch(modulePath)
+	local path = tostring(modulePath or ""):gsub("\\", "/"):gsub("^/+", "")
+	return game:HttpGet(withCacheBust(self.BaseUrl .. path))
+end
+
+function Framework:yrequire(modulePath, forceReload)
+	local path = tostring(modulePath or ""):gsub("\\", "/"):gsub("^/+", "")
+	if not forceReload and self.Cache[path] ~= nil then return self.Cache[path] end
+	
+	local success, moduleSource = pcall(function() return self:Fetch(path) end)
+	if not success or not moduleSource then
+		warn("[Y Hub] Falha ao baixar módulo: " .. path)
+		return nil
+	end
+
+	local loadedChunk, err = loadstring(moduleSource, "@" .. path)
+	if not loadedChunk then
+		warn("[Y Hub] Erro de sintaxe no módulo " .. path .. ": " .. tostring(err))
+		return nil
+	end
+
+	local moduleEnvironment = setmetatable({
+		Framework = self,
+		yrequire = function(child, reload) return self:yrequire(child, reload) end,
+	}, { __index = baseEnvironment })
+
+	if setfenv then setfenv(loadedChunk, moduleEnvironment) end
+	
+	local execSuccess, moduleResult = pcall(loadedChunk)
+	if not execSuccess then
+		warn("[Y Hub] Erro ao executar módulo " .. path .. ": " .. tostring(moduleResult))
+		return nil
+	end
+
+	if moduleResult == nil then moduleResult = true end
+	self.Cache[path] = moduleResult
+	return moduleResult
+end
+
+-- Roda a inicialização da UI numa Thread separada (Evita congelar o executor)
+task.spawn(function()
+	print("[Y Hub] Carregando interface...")
+	local success, err = pcall(function()
+		local gameRegistry = Framework:yrequire("games/index.lua", true)
+		if not gameRegistry then return end
+
+		local selectedGameId = loaderConfig.Game or (type(gameRegistry.FindByPlaceId) == "function" and gameRegistry.FindByPlaceId(game.PlaceId)) or "shinsei"
+		local gameInfo = type(gameRegistry.GetGame) == "function" and gameRegistry.GetGame(selectedGameId) or (gameRegistry.Games and gameRegistry.Games[selectedGameId])
+		
+		if gameInfo then
+			Framework.GameId = selectedGameId
+			Framework.Game = gameInfo
+			local entry = gameInfo.Entry or ("games/" .. selectedGameId .. "/init.lua")
+			local gameModule = Framework:yrequire(entry, true)
+			if type(gameModule) == "table" and type(gameModule.Start) == "function" then
+				gameModule.Start(Framework)
+			end
+		end
+	end)
+	
+	if success then
+		print("[Y Hub] Interface inicializada com sucesso!")
+	else
+		warn("[Y Hub] Erro na abertura da interface: " .. tostring(err))
+	end
+end)
+
+
+--// =====================================================
+--// 2. STAND COMBAT ENGINE (Alta Performance / Heartbeat)
+--// =====================================================
+
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+
+local raycastParams = RaycastParams.new()
+raycastParams.FilterType = RaycastParamsType.Exclude
+raycastParams.IgnoreWater = true
+
+local Combat = {
+    Attacking = false,
+    CurrentTarget = nil,
+    Connection = nil,
+    TargetThread = nil
+}
+
+-- Busca de alvo otimizada (Procura o mais próximo em até 80 studs)
+local function FindClosestTarget()
+    local char = LocalPlayer.Character
+    if not char then return nil end
+    local myRoot = char:FindFirstChild("HumanoidRootPart")
+    if not myRoot then return nil end
+
+    local myPos = myRoot.Position
+    local closest, shortestDist = nil, 80
+
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer and p.Character then
+            local root = p.Character:FindFirstChild("HumanoidRootPart")
+            local hum = p.Character:FindFirstChildOfClass("Humanoid")
+
+            if root and hum and hum.Health > 0 then
+                local dist = (myPos - root.Position).Magnitude
+                if dist < shortestDist then
+                    shortestDist = dist
+                    closest = p.Character
+                end
+            end
+        end
+    end
+    return closest
+end
+
+-- Posicionamento fluido usando o frame do jogo
+local function StepPosition(targetChar)
+    local myChar = LocalPlayer.Character
+    if not myChar then return end
+    local myRoot = myChar:FindFirstChild("HumanoidRootPart")
+    local targetRoot = targetChar:FindFirstChild("HumanoidRootPart")
+
+    if not myRoot or not targetRoot then return end
+
+    local targetPos = targetRoot.Position
+    local idealPos = (targetRoot.CFrame * CFrame.new(0, 0, 2.5)).Position
+
+    raycastParams.FilterObjects = { myChar, targetChar }
+    local result = Workspace:Raycast(targetPos, idealPos - targetPos, raycastParams)
+
+    local finalPos = result and (result.Position + result.Normal * 0.5) or idealPos
+    myRoot.CFrame = CFrame.lookAt(finalPos, targetPos)
+end
+
+-- Inicia o Ataque (Sem congelar e sem lag)
+function Combat.StartAttack(onHitCallback)
+    if Combat.Attacking then return end
+    Combat.Attacking = true
+
+    -- Loop 1: Varredura de alvos (5x por segundo na CPU)
+    Combat.TargetThread = task.spawn(function()
+        while Combat.Attacking do
+            Combat.CurrentTarget = FindClosestTarget()
+            task.wait(0.2)
+        end
+    end)
+
+    -- Loop 2: Atualização de posição fluida no Heartbeat
+    Combat.Connection = RunService.Heartbeat:Connect(function()
+        if not Combat.Attacking then return end
+
+        local target = Combat.CurrentTarget
+        if target and target:FindFirstChild("HumanoidRootPart") then
+            StepPosition(target)
+
+            if type(onHitCallback) == "function" then
+                pcall(onHitCallback, target)
+            end
+        end
+    end)
+end
+
+-- Desliga e limpa a memória do script
+function Combat.StopAttack()
+    Combat.Attacking = false
+
+    if Combat.Connection then
+        Combat.Connection:Disconnect()
+        Combat.Connection = nil
+    end
+
+    if Combat.TargetThread then
+        task.cancel(Combat.TargetThread)
+        Combat.TargetThread = nil
+    end
+
+    Combat.CurrentTarget = nil
+end
+
+getgenv().StandCombat = Combat
