@@ -1,7 +1,7 @@
---// Y Hub Alt - Versão Integrada na UI Oficial + Voo Superman Estável & Otimizado
+--// Y Hub Alt - Versão de Injeção Direta Garantida
 pcall(function()
 	if setfpscap then
-		setfpscap(30) -- Trava de FPS para servidores cheios
+		setfpscap(30)
 	end
 end)
 
@@ -47,7 +47,6 @@ pcall(function()
 			local localRoot = localChar and localChar:FindFirstChild("HumanoidRootPart")
 			if not localRoot then return end
 
-			-- Desativa colisão com a Main
 			local ownerPlayer = Players:FindFirstChild(OwnerName)
 			if ownerPlayer and ownerPlayer.Character then
 				for _, part in ipairs(localChar:GetDescendants()) do
@@ -57,7 +56,6 @@ pcall(function()
 				end
 			end
 
-			-- Oculta avatares distantes para salvar FPS/GPU
 			for _, player in ipairs(Players:GetPlayers()) do
 				if player ~= LocalPlayer and player.Character then
 					local char = player.Character
@@ -89,7 +87,7 @@ pcall(function()
 	end)
 end)
 
--- 3. Sistema de Mira Preditiva Leve (Anti-Vento para M1 e Kokuzen/R)
+-- 3. Sistema de Mira Preditiva Leve
 pcall(function()
 	local Players = game:GetService("Players")
 	local RunService = game:GetService("RunService")
@@ -124,7 +122,7 @@ pcall(function()
 			end
 
 			if target then
-				root.CFrame = CFrame.new(root.Position, Vector3.new(target.Position.X, root.Position.Y, target.Position.Z))
+				root.CFrame = CFrame.new(root.Position, Vector3.new(target.Position.X, target.Position.Y, target.Position.Z))
 			end
 		end)
 	end)
@@ -165,16 +163,86 @@ pcall(function()
 	end)
 end)
 
--- 5. Variáveis globais de controle para NoClip e Voo (acessíveis internamente)
-getgenv().YHub_NoClip = false
-getgenv().YHub_Fly = false
-
--- Lógica de NoClip e Voo Superman Corrigido (Sem girar/bugar na tela dos outros)
+-- 5. Painel Flutuante Integrado de NoClip + Voo Estável (Sem bugar rotação)
 pcall(function()
+	local CoreGui = game:GetService("CoreGui")
 	local RunService = game:GetService("RunService")
 	local UserInputService = game:GetService("UserInputService")
 	local LocalPlayer = game:GetService("Players").LocalPlayer
 	local Camera = workspace.CurrentCamera
+
+	local screenGui = Instance.new("ScreenGui")
+	screenGui.Name = "YHub_IntegratedTools"
+	screenGui.Parent = CoreGui
+
+	local frame = Instance.new("Frame")
+	frame.Size = UDim2.new(0, 210, 0, 110)
+	frame.Position = UDim2.new(0, 30, 0, 150)
+	frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+	frame.BorderSizePixel = 0
+	frame.Active = true
+	frame.Draggable = true
+	frame.Parent = screenGui
+
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 8)
+	corner.Parent = frame
+
+	local title = Instance.new("TextLabel")
+	title.Size = UDim2.new(1, 0, 0, 30)
+	title.BackgroundTransparency = 1
+	title.Text = "Y Hub - Alt Controller"
+	title.TextColor3 = Color3.fromRGB(255, 255, 255)
+	title.TextSize = 12
+	title.Font = Enum.Font.SourceSansBold
+	title.Parent = frame
+
+	local noclipBtn = Instance.new("TextButton")
+	noclipBtn.Size = UDim2.new(0, 190, 0, 25)
+	noclipBtn.Position = UDim2.new(0, 10, 0, 35)
+	noclipBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+	noclipBtn.Text = "NoClip (Atravessar): OFF"
+	noclipBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
+	noclipBtn.TextSize = 11
+	noclipBtn.Font = Enum.Font.SourceSansBold
+	noclipBtn.Parent = frame
+	Instance.new("UICorner", noclipBtn).CornerRadius = UDim.new(0, 5)
+
+	local flyBtn = Instance.new("TextButton")
+	flyBtn.Size = UDim2.new(0, 190, 0, 25)
+	flyBtn.Position = UDim2.new(0, 10, 0, 65)
+	flyBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+	flyBtn.Text = "Voo Estável (Fly): OFF"
+	flyBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
+	flyBtn.TextSize = 11
+	flyBtn.Font = Enum.Font.SourceSansBold
+	flyBtn.Parent = frame
+	Instance.new("UICorner", flyBtn).CornerRadius = UDim.new(0, 5)
+
+	local noclipActive = false
+	local flyActive = false
+
+	noclipBtn.MouseButton1Click:Connect(function()
+		noclipActive = not noclipActive
+		if noclipActive then
+			noclipBtn.Text = "NoClip (Atravessار): ON"
+			noclipBtn.TextColor3 = Color3.fromRGB(80, 255, 80)
+		else
+			noclipBtn.Text = "NoClip (Atravessار): OFF"
+			noclipBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
+		end
+	end)
+
+	flyBtn.MouseButton1Click:Connect(function()
+		flyActive = not flyActive
+		if flyActive then
+			flyBtn.Text = "Voo Estável (Fly): ON"
+			flyBtn.TextColor3 = Color3.fromRGB(80, 255, 80)
+		else
+			flyBtn.Text = "Voo Estável (Fly): OFF"
+			flyBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
+		end
+	end)
 
 	RunService.RenderStepped:Connect(function()
 		local char = LocalPlayer.Character
@@ -182,8 +250,7 @@ pcall(function()
 		local root = char:FindFirstChild("HumanoidRootPart")
 		local humanoid = char:FindFirstChildOfClass("Humanoid")
 
-		-- NoClip ativo
-		if getgenv().YHub_NoClip and root then
+		if noclipActive and root then
 			for _, part in ipairs(char:GetDescendants()) do
 				if part:IsA("BasePart") then
 					part.CanCollide = false
@@ -191,8 +258,7 @@ pcall(function()
 			end
 		end
 
-		-- Voo Superman Suave e Estável (Usa BodyVelocity/AssemblyLinearVelocity sem rotação forçada bugada)
-		if getgenv().YHub_Fly and root and humanoid then
+		if flyActive and root and humanoid then
 			humanoid.PlatformStand = true
 			local camCFrame = Camera.CFrame
 			local moveDirection = Vector3.new(0, 0, 0)
@@ -211,35 +277,19 @@ pcall(function()
 			end
 
 			root.AssemblyLinearVelocity = moveDirection * 55
-			-- Mantém a rotação estável alinhada suavemente com a câmera sem travar em loops malucos
 			root.CFrame = CFrame.new(root.Position, root.Position + Vector3.new(camCFrame.LookVector.X, 0, camCFrame.LookVector.Z))
 		else
-			if humanoid and humanoid.PlatformStand and not getgenv().YHub_Fly then
+			if humanoid and humanoid.PlatformStand and not flyActive then
 				humanoid.PlatformStand = false
 			end
 		end
 	end)
 end)
 
--- 6. Coletor de lixo para manter a RAM limpa
+-- 6. Carregamento correto do Loader Oficial do Y Hub com suporte à chave
 pcall(function()
-	collectgarbage("setpause", 80)
-	collectgarbage("setstepmul", 400)
-	
-	task.spawn(function()
-		while task.wait(2) do
-			collectgarbage("step", 400)
-		end
-	end)
+	getgenv().script_key = "Y-CORE"
+	loadstring(game:HttpGet("https://github.com/GodErste/Y-Core/raw/main/loader.lua"))()
 end)
 
--- 7. Carregamento do Loader Oficial do Y Hub
-local success, err = pcall(function()
-	loadstring(game:HttpGet("https://raw.githubusercontent.com/GodErste/Y-Core/refs/heads/main/loader.lua"))()
-end)
-
-if not success then
-	warn("[Y Hub Alt] Falha ao carregar o loader oficial: " .. tostring(err))
-else
-	print("[Y Hub Alt] Sistema integrado carregado com sucesso!")
-end
+print("[Y Hub Alt] Script executado com sucesso!")
