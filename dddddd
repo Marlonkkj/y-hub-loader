@@ -1,1 +1,72 @@
+-- Script de Teste da Interface + Stand Attack Anti-Lag
+local CoreGui = game:GetService("CoreGui")
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
 
+-- Remove interface antiga se existir
+if CoreGui:FindFirstChild("TestHubGUI") then
+	CoreGui.TestHubGUI:Destroy()
+end
+
+-- Criacao da janela do Hub
+local sg = Instance.new("ScreenGui", CoreGui)
+sg.Name = "TestHubGUI"
+
+local main = Instance.new("Frame", sg)
+main.Size = UDim2.new(0, 220, 0, 130)
+main.Position = UDim2.new(0.5, -110, 0.4, -65)
+main.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+main.BorderSizePixel = 0
+main.Active = true
+main.Draggable = true
+
+local title = Instance.new("TextLabel", main)
+title.Size = UDim2.new(1, 0, 0, 30)
+title.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+title.Text = "Hub Status: ONLINE"
+title.TextColor3 = Color3.fromRGB(0, 255, 120)
+title.Font = Enum.Font.SourceSansBold
+title.TextSize = 16
+
+local btn = Instance.new("TextButton", main)
+btn.Size = UDim2.new(0.8, 0, 0, 40)
+btn.Position = UDim2.new(0.1, 0, 0.45, 0)
+btn.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
+btn.Text = "Stand Attack: OFF"
+btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+btn.Font = Enum.Font.SourceSansBold
+btn.TextSize = 14
+
+-- Logica do Stand Attack
+local attacking = false
+local conn = nil
+
+btn.MouseButton1Click:Connect(function()
+	attacking = not attacking
+	if attacking then
+		btn.Text = "Stand Attack: ON"
+		btn.BackgroundColor3 = Color3.fromRGB(40, 180, 40)
+		
+		conn = RunService.Heartbeat:Connect(function()
+			local char = LocalPlayer.Character
+			if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+			
+			for _, p in ipairs(Players:GetPlayers()) do
+				if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+					local targetRoot = p.Character.HumanoidRootPart
+					local hum = p.Character:FindFirstChildOfClass("Humanoid")
+					if hum and hum.Health > 0 then
+						-- Teleporta suavemente a 2.5 studs do alvo
+						char.HumanoidRootPart.CFrame = targetRoot.CFrame * CFrame.new(0, 0, 2.5)
+						break
+					end
+				end
+			end
+		end)
+	else
+		btn.Text = "Stand Attack: OFF"
+		btn.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
+		if conn then conn:Disconnect() conn = nil end
+	end
+end)
