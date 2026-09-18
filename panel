@@ -1,4 +1,4 @@
---// Y Hub Alt - Versão de Injeção Direta Garantida
+--// Y Hub Alt - Voo Superman Perfeito + Flutuação Anti-Queda + NoClip Independente
 pcall(function()
 	if setfpscap then
 		setfpscap(30)
@@ -122,7 +122,7 @@ pcall(function()
 			end
 
 			if target then
-				root.CFrame = CFrame.new(root.Position, Vector3.new(target.Position.X, target.Position.Y, target.Position.Z))
+				root.CFrame = CFrame.new(root.Position, Vector3.new(target.Position.X, root.Position.Y, target.Position.Z))
 			end
 		end)
 	end)
@@ -163,7 +163,7 @@ pcall(function()
 	end)
 end)
 
--- 5. Painel Flutuante Integrado de NoClip + Voo Estável (Sem bugar rotação)
+-- 5. Painel Flutuante Limpo com Voo Superman Perfeito, Flutuação e NoClip
 pcall(function()
 	local CoreGui = game:GetService("CoreGui")
 	local RunService = game:GetService("RunService")
@@ -172,7 +172,7 @@ pcall(function()
 	local Camera = workspace.CurrentCamera
 
 	local screenGui = Instance.new("ScreenGui")
-	screenGui.Name = "YHub_IntegratedTools"
+	screenGui.Name = "YHub_SupermanFixed"
 	screenGui.Parent = CoreGui
 
 	local frame = Instance.new("Frame")
@@ -189,13 +189,24 @@ pcall(function()
 	corner.Parent = frame
 
 	local title = Instance.new("TextLabel")
-	title.Size = UDim2.new(1, 0, 0, 30)
+	title.Size = UDim2.new(1, -40, 0, 30)
 	title.BackgroundTransparency = 1
-	title.Text = "Y Hub - Alt Controller"
+	title.Text = "Y Hub - Superman Mode"
 	title.TextColor3 = Color3.fromRGB(255, 255, 255)
-	title.TextSize = 12
+	title.TextSize = 11
 	title.Font = Enum.Font.SourceSansBold
 	title.Parent = frame
+
+	local minimizeBtn = Instance.new("TextButton")
+	minimizeBtn.Size = UDim2.new(0, 30, 0, 20)
+	minimizeBtn.Position = UDim2.new(1, -35, 0, 5)
+	minimizeBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+	minimizeBtn.Text = "-"
+	minimizeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+	minimizeBtn.TextSize = 12
+	minimizeBtn.Font = Enum.Font.SourceSansBold
+	minimizeBtn.Parent = frame
+	Instance.new("UICorner", minimizeBtn).CornerRadius = UDim.new(0, 4)
 
 	local noclipBtn = Instance.new("TextButton")
 	noclipBtn.Size = UDim2.new(0, 190, 0, 25)
@@ -212,7 +223,7 @@ pcall(function()
 	flyBtn.Size = UDim2.new(0, 190, 0, 25)
 	flyBtn.Position = UDim2.new(0, 10, 0, 65)
 	flyBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-	flyBtn.Text = "Voo Estável (Fly): OFF"
+	flyBtn.Text = "Voo Superman: OFF"
 	flyBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
 	flyBtn.TextSize = 11
 	flyBtn.Font = Enum.Font.SourceSansBold
@@ -221,26 +232,74 @@ pcall(function()
 
 	local noclipActive = false
 	local flyActive = false
+	local isMinimized = false
+	local bodyVelocity, bodyGyro = nil, nil
+
+	minimizeBtn.MouseButton1Click:Connect(function()
+		isMinimized = not isMinimized
+		if isMinimized then
+			noclipBtn.Visible = false
+			flyBtn.Visible = false
+			frame.Size = UDim2.new(0, 210, 0, 30)
+			minimizeBtn.Text = "+"
+		else
+			noclipBtn.Visible = true
+			flyBtn.Visible = true
+			frame.Size = UDim2.new(0, 210, 0, 110)
+			minimizeBtn.Text = "-"
+		end
+	end)
 
 	noclipBtn.MouseButton1Click:Connect(function()
 		noclipActive = not noclipActive
 		if noclipActive then
-			noclipBtn.Text = "NoClip (Atravessار): ON"
+			noclipBtn.Text = "NoClip (Atravessar): ON"
 			noclipBtn.TextColor3 = Color3.fromRGB(80, 255, 80)
 		else
-			noclipBtn.Text = "NoClip (Atravessار): OFF"
+			noclipBtn.Text = "NoClip (Atravessar): OFF"
 			noclipBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
 		end
 	end)
 
 	flyBtn.MouseButton1Click:Connect(function()
 		flyActive = not flyActive
+		local char = LocalPlayer.Character
+		local root = char and char:FindFirstChild("HumanoidRootPart")
+		local humanoid = char and char:FindFirstChildOfClass("Humanoid")
+
 		if flyActive then
-			flyBtn.Text = "Voo Estável (Fly): ON"
+			flyBtn.Text = "Voo Superman: ON"
 			flyBtn.TextColor3 = Color3.fromRGB(80, 255, 80)
+			if root and humanoid then
+				humanoid.PlatformStand = true
+				if not root:FindFirstChild("YHubBodyVelocity") then
+					bodyVelocity = Instance.new("BodyVelocity")
+					bodyVelocity.Name = "YHubBodyVelocity"
+					bodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+					bodyVelocity.Velocity = Vector3.new(0, 0, 0)
+					bodyVelocity.Parent = root
+
+					bodyGyro = Instance.new("BodyGyro")
+					bodyGyro.Name = "YHubBodyGyro"
+					bodyGyro.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+					bodyGyro.P = 3000
+					bodyGyro.Parent = root
+				end
+			end
 		else
-			flyBtn.Text = "Voo Estável (Fly): OFF"
+			flyBtn.Text = "Voo Superman: OFF"
 			flyBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
+			if root then
+				local bv = root:FindFirstChild("YHubBodyVelocity")
+				local bg = root:FindFirstChild("YHubBodyGyro")
+				if bv then bv:Destroy() end
+				if bg then bg:Destroy() end
+			end
+			if humanoid then
+				humanoid.PlatformStand = false
+				-- Congela a velocidade para ele flutuar no ar e NÃO cair despencando
+				root.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+			end
 		end
 	end)
 
@@ -250,6 +309,7 @@ pcall(function()
 		local root = char:FindFirstChild("HumanoidRootPart")
 		local humanoid = char:FindFirstChildOfClass("Humanoid")
 
+		-- NoClip independente
 		if noclipActive and root then
 			for _, part in ipairs(char:GetDescendants()) do
 				if part:IsA("BasePart") then
@@ -258,6 +318,7 @@ pcall(function()
 			end
 		end
 
+		-- Voo Superman Perfeito Corrigido (Orientação alinhada sem bugs de perna correndo)
 		if flyActive and root and humanoid then
 			humanoid.PlatformStand = true
 			local camCFrame = Camera.CFrame
@@ -276,20 +337,26 @@ pcall(function()
 				moveDirection = moveDirection + camCFrame.RightVector
 			end
 
-			root.AssemblyLinearVelocity = moveDirection * 55
-			root.CFrame = CFrame.new(root.Position, root.Position + Vector3.new(camCFrame.LookVector.X, 0, camCFrame.LookVector.Z))
-		else
-			if humanoid and humanoid.PlatformStand and not flyActive then
-				humanoid.PlatformStand = false
+			local bv = root:FindFirstChild("YHubBodyVelocity")
+			local bg = root:FindFirstChild("YHubBodyGyro")
+
+			if bv and bg then
+				if moveDirection.Magnitude > 0 then
+					bv.Velocity = moveDirection.Unit * 65
+				else
+					bv.Velocity = Vector3.new(0, 0.1, 0) -- Mantém flutuando parado perfeitamente
+				end
+				-- Rotação correta virada para frente e inclinada planando como herói
+				bg.CFrame = camCFrame * CFrame.Angles(math.rad(-90), 0, 0)
 			end
 		end
 	end)
 end)
 
--- 6. Carregamento correto do Loader Oficial do Y Hub com suporte à chave
+-- 6. Carregamento do Loader Oficial do Y Hub
 pcall(function()
 	getgenv().script_key = "Y-CORE"
 	loadstring(game:HttpGet("https://github.com/GodErste/Y-Core/raw/main/loader.lua"))()
 end)
 
-print("[Y Hub Alt] Script executado com sucesso!")
+print("[Y Hub Alt] Voo Superman Perfeito ativado!")
