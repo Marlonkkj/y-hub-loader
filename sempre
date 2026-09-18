@@ -1,4 +1,4 @@
---// Y Hub Alt - Voo Superman Alinhamento Perfeito (Barriga para Baixo)
+--// Y Hub Alt - Voo Caótico (Impossível de Acertar) + Delete + Combo R Bolado
 pcall(function()
 	if setfpscap then
 		setfpscap(30)
@@ -8,7 +8,7 @@ end)
 -- CONFIGURAÇÃO DA SUA CONTA PRINCIPAL (Mude para o nick exato da sua main)
 local OwnerName = "SEU_NICK_PRINCIPAL_AQUI"
 
--- 1. Limpeza gráfica inicial
+-- 1. Limpeza gráfica inicial leve
 pcall(function()
 	local Lighting = game:GetService("Lighting")
 	Lighting.GlobalShadows = false
@@ -22,7 +22,7 @@ pcall(function()
 	end
 end)
 
--- 2. Anti-Lag e Desativação de Colisão com a Main
+-- 2. Anti-Lag Otimizado para Servidor Cheio
 pcall(function()
 	local Players = game:GetService("Players")
 	local LocalPlayer = Players.LocalPlayer
@@ -31,7 +31,7 @@ pcall(function()
 	local counter = 0
 	RunService.Heartbeat:Connect(function()
 		counter = counter + 1
-		if counter % 30 ~= 0 then return end
+		if counter % 60 ~= 0 then return end
 
 		pcall(function()
 			local localChar = LocalPlayer.Character
@@ -41,7 +41,7 @@ pcall(function()
 			local ownerPlayer = Players:FindFirstChild(OwnerName)
 			if ownerPlayer and ownerPlayer.Character then
 				for _, part in ipairs(localChar:GetDescendants()) do
-					if part:IsA("BasePart") then
+					if part:IsA("BasePart") and part.CanCollide then
 						part.CanCollide = false
 					end
 				end
@@ -50,20 +50,21 @@ pcall(function()
 	end)
 end)
 
--- 3. Painel Flutuante com Voo Superman Ajustado
+-- 3. Painel Flutuante com Voo Imprevisível (Caótico)
 pcall(function()
 	local CoreGui = game:GetService("CoreGui")
 	local RunService = game:GetService("RunService")
 	local UserInputService = game:GetService("UserInputService")
 	local LocalPlayer = game:GetService("Players").LocalPlayer
 	local Camera = workspace.CurrentCamera
+	local VirtualUser = game:GetService("VirtualUser")
 
 	local screenGui = Instance.new("ScreenGui")
-	screenGui.Name = "YHub_SupermanFixed"
+	screenGui.Name = "YHub_ChaosFly"
 	screenGui.Parent = CoreGui
 
 	local frame = Instance.new("Frame")
-	frame.Size = UDim2.new(0, 210, 0, 110)
+	frame.Size = UDim2.new(0, 210, 0, 195)
 	frame.Position = UDim2.new(0, 30, 0, 150)
 	frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 	frame.BorderSizePixel = 0
@@ -78,9 +79,9 @@ pcall(function()
 	local title = Instance.new("TextLabel")
 	title.Size = UDim2.new(1, -40, 0, 30)
 	title.BackgroundTransparency = 1
-	title.Text = "Y Hub - Voo Superman Real"
-	title.TextColor3 = Color3.fromRGB(255, 255, 255)
-	title.TextSize = 11
+	title.Text = "Y Hub - [Delete] p/ Fechar"
+	title.TextColor3 = Color3.fromRGB(200, 200, 200)
+	title.TextSize = 10
 	title.Font = Enum.Font.SourceSansBold
 	title.Parent = frame
 
@@ -110,29 +111,94 @@ pcall(function()
 	flyBtn.Size = UDim2.new(0, 190, 0, 25)
 	flyBtn.Position = UDim2.new(0, 10, 0, 65)
 	flyBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-	flyBtn.Text = "Voo Superman: OFF"
+	flyBtn.Text = "Voo Caótico (Desvio): OFF"
 	flyBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
-	flyBtn.TextSize = 11
+	flyBtn.TextSize = 10
 	flyBtn.Font = Enum.Font.SourceSansBold
 	flyBtn.Parent = frame
 	Instance.new("UICorner", flyBtn).CornerRadius = UDim.new(0, 5)
 
+	local comboBtn = Instance.new("TextButton")
+	comboBtn.Size = UDim2.new(0, 190, 0, 25)
+	comboBtn.Position = UDim2.new(0, 10, 0, 95)
+	comboBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+	comboBtn.Text = "Combo 3 Hits (R Bolado): OFF"
+	comboBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
+	comboBtn.TextSize = 10
+	comboBtn.Font = Enum.Font.SourceSansBold
+	comboBtn.Parent = frame
+	Instance.new("UICorner", comboBtn).CornerRadius = UDim.new(0, 5)
+
+	-- Botões de Velocidade
+	local speedLabel = Instance.new("TextLabel")
+	speedLabel.Size = UDim2.new(0, 190, 0, 20)
+	speedLabel.Position = UDim2.new(0, 10, 0, 125)
+	speedLabel.BackgroundTransparency = 1
+	speedLabel.Text = "Velocidade: 1.6"
+	speedLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+	speedLabel.TextSize = 11
+	speedLabel.Font = Enum.Font.SourceSansBold
+	speedLabel.Parent = frame
+
+	local minusBtn = Instance.new("TextButton")
+	minusBtn.Size = UDim2.new(0, 90, 0, 25)
+	minusBtn.Position = UDim2.new(0, 10, 0, 155)
+	minusBtn.BackgroundColor3 = Color3.fromRGB(60, 40, 40)
+	minusBtn.Text = "(- Velocidade)"
+	minusBtn.TextColor3 = Color3.fromRGB(255, 150, 150)
+	minusBtn.TextSize = 10
+	minusBtn.Font = Enum.Font.SourceSansBold
+	minusBtn.Parent = frame
+	Instance.new("UICorner", minusBtn).CornerRadius = UDim.new(0, 5)
+
+	local plusBtn = Instance.new("TextButton")
+	plusBtn.Size = UDim2.new(0, 90, 0, 25)
+	plusBtn.Position = UDim2.new(0, 110, 0, 155)
+	plusBtn.BackgroundColor3 = Color3.fromRGB(40, 60, 40)
+	plusBtn.Text = "(+ Velocidade)"
+	plusBtn.TextColor3 = Color3.fromRGB(150, 255, 150)
+	plusBtn.TextSize = 10
+	plusBtn.Font = Enum.Font.SourceSansBold
+	plusBtn.Parent = frame
+	Instance.new("UICorner", plusBtn).CornerRadius = UDim.new(0, 5)
+
 	local noclipActive = false
 	local flyActive = false
+	local comboActive = false
 	local isMinimized = false
+	local isHidden = false
 	local currentPos = nil
+	local flySpeed = 1.6
+	local hitCounter = 0
+	local chaosTick = 0
+
+	-- Tecla Delete para fechar/abrir a aba
+	UserInputService.InputBegan:Connect(function(input, gameProcessed)
+		if input.KeyCode == Enum.KeyCode.Delete then
+			isHidden = not isHidden
+			frame.Visible = not isHidden
+		end
+	end)
 
 	minimizeBtn.MouseButton1Click:Connect(function()
 		isMinimized = not isMinimized
 		if isMinimized then
 			noclipBtn.Visible = false
 			flyBtn.Visible = false
+			comboBtn.Visible = false
+			speedLabel.Visible = false
+			minusBtn.Visible = false
+			plusBtn.Visible = false
 			frame.Size = UDim2.new(0, 210, 0, 30)
 			minimizeBtn.Text = "+"
 		else
 			noclipBtn.Visible = true
 			flyBtn.Visible = true
-			frame.Size = UDim2.new(0, 210, 0, 110)
+			comboBtn.Visible = true
+			speedLabel.Visible = true
+			minusBtn.Visible = true
+			plusBtn.Visible = true
+			frame.Size = UDim2.new(0, 210, 0, 195)
 			minimizeBtn.Text = "-"
 		end
 	end)
@@ -148,6 +214,27 @@ pcall(function()
 		end
 	end)
 
+	comboBtn.MouseButton1Click:Connect(function()
+		comboActive = not comboActive
+		if comboActive then
+			comboBtn.Text = "Combo 3 Hits (R Bolado): ON"
+			comboBtn.TextColor3 = Color3.fromRGB(80, 255, 80)
+		else
+			comboBtn.Text = "Combo 3 Hits (R Bolado): OFF"
+			comboBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
+		end
+	end)
+
+	minusBtn.MouseButton1Click:Connect(function()
+		flySpeed = math.max(0.2, flySpeed - 0.3)
+		speedLabel.Text = string.format("Velocidade: %.1f", flySpeed)
+	end)
+
+	plusBtn.MouseButton1Click:Connect(function()
+		flySpeed = math.min(10.0, flySpeed + 0.3)
+		speedLabel.Text = string.format("Velocidade: %.1f", flySpeed)
+	end)
+
 	flyBtn.MouseButton1Click:Connect(function()
 		flyActive = not flyActive
 		local char = LocalPlayer.Character
@@ -155,7 +242,7 @@ pcall(function()
 		local humanoid = char and char:FindFirstChildOfClass("Humanoid")
 
 		if flyActive then
-			flyBtn.Text = "Voo Superman: ON"
+			flyBtn.Text = "Voo Caótico (Desvio): ON"
 			flyBtn.TextColor3 = Color3.fromRGB(80, 255, 80)
 			if root then
 				currentPos = root.CFrame
@@ -165,7 +252,7 @@ pcall(function()
 				humanoid.PlatformStand = true
 			end
 		else
-			flyBtn.Text = "Voo Superman: OFF"
+			flyBtn.Text = "Voo Caótico (Desvio): OFF"
 			flyBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
 			if root then
 				root.Anchored = false
@@ -176,6 +263,7 @@ pcall(function()
 		end
 	end)
 
+	-- Loop de renderização com desvios caóticos e impossíveis de prever
 	RunService.RenderStepped:Connect(function()
 		local char = LocalPlayer.Character
 		if not char then return end
@@ -183,7 +271,7 @@ pcall(function()
 
 		if noclipActive and root then
 			for _, part in ipairs(char:GetDescendants()) do
-				if part:IsA("BasePart") then
+				if part:IsA("BasePart") and part.CanCollide then
 					part.CanCollide = false
 				end
 			end
@@ -208,10 +296,32 @@ pcall(function()
 
 			if currentPos then
 				if moveDirection.Magnitude > 0 then
-					currentPos = currentPos + (moveDirection.Unit * 1.4)
+					currentPos = currentPos + (moveDirection.Unit * flySpeed)
 				end
-				-- Correção exata dos eixos: deitado de barriga para baixo alinhado perfeitamente com a câmera
-				root.CFrame = CFrame.new(currentPos.Position) * camCFrame.Rotation * CFrame.Angles(math.rad(-90), 0, 0)
+				
+				-- Geração de desvio randômico caótico instantâneo (Jitter/Dodge)
+				chaosTick = chaosTick + 1
+				local randomOffsetX = math.sin(chaosTick * 1.5) * 1.2
+				local randomOffsetY = math.cos(chaosTick * 2.0) * 0.8
+				local randomOffsetZ = math.cos(chaosTick * 1.2) * 1.2
+				
+				local chaosOffset = Vector3.new(randomOffsetX, randomOffsetY, randomOffsetZ)
+				
+				-- Mantém o alinhamento deitado de barriga para baixo, mas com trepidação e teleporte indetectável
+				root.CFrame = CFrame.new(currentPos.Position + chaosOffset) * camCFrame.Rotation * CFrame.Angles(math.rad(-90), 0, 0)
+			end
+
+			-- Combo rápido de 3 hits
+			if comboActive then
+				hitCounter = hitCounter + 1
+				if hitCounter >= 40 then
+					pcall(function()
+						VirtualUser:Button1Down(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+						task.wait(0.04)
+						VirtualUser:Button1Up(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+					end)
+					hitCounter = 0
+				end
 			end
 		end
 	end)
@@ -223,4 +333,4 @@ pcall(function()
 	loadstring(game:HttpGet("https://github.com/GodErste/Y-Core/raw/main/loader.lua"))()
 end)
 
-print("[Y Hub Alt] Voo Superman alinhado com sucesso!")
+print("[Y Hub Alt] Movimentação Caótica aplicada com sucesso!")
