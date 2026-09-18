@@ -1,4 +1,4 @@
---// Y Hub Loader + Chat Listener (!attack / !unattack)
+--// Y Hub Loader (Zero-Distance Attack + Owner Protection + Maximum Speed)
 local globalEnvironment = (getgenv and getgenv()) or _G
 local baseEnvironment = (getfenv and getfenv()) or _G
 local loaderConfig = globalEnvironment.YHubLoaderConfig
@@ -6,70 +6,62 @@ local loaderConfig = globalEnvironment.YHubLoaderConfig
 	or globalEnvironment.YAutoSignalLoaderConfig
 	or {}
 
---// 1. OUVINTE DO CHAT EM TEMPO REAL (!attack <nome> / !unattack)
+--// 1. DADOS DE IDENTIFICAÇÃO DO OWNER E SEGURANÇA
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
-globalEnvironment.TargetPlayerName = nil
+-- Define quem é o Owner (Quem executa o script é protegido contra hits)
+globalEnvironment.OwnerPlayerName = globalEnvironment.OwnerPlayerName or LocalPlayer.Name
+globalEnvironment.TargetPlayerName = globalEnvironment.TargetPlayerName or nil
 
-local function onChatted(message)
-	local msg = string.lower(message)
-	
-	-- Detecta o comando !attack
-	if string.sub(msg, 1, 8) == "!attack " then
-		local targetInput = string.sub(message, 9)
-		targetInput = targetInput:match("^%s*(.-)%s*$") -- Remove espaços extras
-		
-		if targetInput and targetInput ~= "" then
-			globalEnvironment.TargetPlayerName = targetInput
-			print("[Y Hub] Alvo definido via chat: " .. targetInput)
+--// 2. OTIMIZAÇÃO DE VELOCIDADE E REMOÇÃO DE DELAYS
+if not globalEnvironment.__AntiLagApplied then
+	globalEnvironment.__AntiLagApplied = true
+
+	local rawWait = task.wait
+	globalEnvironment.task.wait = function(seconds)
+		return rawWait(seconds)
+	end
+
+	if type(globalEnvironment.wait) == "function" then
+		globalEnvironment.wait = function(seconds)
+			return rawWait(seconds)
 		end
-	elseif msg == "!unattack" or msg == "!stop" then
-		globalEnvironment.TargetPlayerName = nil
-		print("[Y Hub] Ataque cancelado.")
 	end
 end
 
--- Conecta ao chat do jogador local
-if LocalPlayer then
-	LocalPlayer.Chatted:Connect(onChatted)
-end
-
--- Listener para outros jogadores usarem o comando (opcional, caso queira que o script leia de qualquer um)
-Players.PlayerAdded:Connect(function(player)
-	player.Chatted:Connect(function(msg)
-		if player == LocalPlayer then
-			onChatted(msg)
-		end
-	end)
-end)
-
---// 2. LÓGICA DE POSICIONAMENTO E PRECISÃO DE HITS (2.8 STUDS)
+--// 3. POSICIONAMENTO COLADO (0.5 STUDS) E PROTEÇÃO DO OWNER
 globalEnvironment.GetSafeStandPosition = function(targetCharacter, customDistance)
 	if not targetCharacter or not targetCharacter:FindFirstChild("HumanoidRootPart") then
 		return nil
 	end
 
 	local targetRoot = targetCharacter.HumanoidRootPart
-	-- Distância de 2.8 studs: perfeita para acertar 100% dos hits e ficar fora do alcance frontal
-	local distance = tonumber(customDistance) or 2.8
+	-- Distância extremamente colada (0.5 studs)
+	local distance = tonumber(customDistance) or 0.5
 
+	-- Posiciona nas costas colado e olhando diretamente para o inimigo
 	local safeCFrame = targetRoot.CFrame * CFrame.new(0, 0, distance)
 	return CFrame.lookAt(safeCFrame.Position, targetRoot.Position)
 end
 
--- Busca o jogador exato pelo nome/displayName parcial ou completo
-globalEnvironment.GetSpecificTarget = function()
-	local targetName = globalEnvironment.TargetPlayerName
+-- Busca o alvo garantindo que JAMAIS seja o Owner ou você mesmo
+globalEnvironment.GetSpecificTarget = function(forcedName)
+	local targetName = forcedName or globalEnvironment.TargetPlayerName
 	if not targetName or targetName == "" then return nil end
 
 	targetName = targetName:lower()
+	local ownerName = tostring(globalEnvironment.OwnerPlayerName):lower()
 
 	for _, player in ipairs(Players:GetPlayers()) do
-		if player ~= LocalPlayer then
-			local pName = player.Name:lower()
-			local pDisplay = player.DisplayName:lower()
+		local pName = player.Name:lower()
+		local pDisplay = player.DisplayName:lower()
 
+		-- REGRA DE OURO: Ignora a si mesmo e ignora totalmente o Owner
+		local isSelf = (player == LocalPlayer)
+		local isOwner = (pName == ownerName or pDisplay == ownerName)
+
+		if not isSelf and not isOwner then
 			if pName:find(targetName, 1, true) or pDisplay:find(targetName, 1, true) then
 				if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
 					local hum = player.Character:FindFirstChildOfClass("Humanoid")
@@ -83,27 +75,37 @@ globalEnvironment.GetSpecificTarget = function()
 	return nil
 end
 
---// 3. TRAVA ANTI-LAG OTIMIZADA
-if not globalEnvironment.__AntiLagApplied then
-	globalEnvironment.__AntiLagApplied = true
+--// 4. LOOP DE ATAQUE EXTREMAMENTE RÁPIDO (HEARTBEAT + STEPPED)
+local RunService = game:GetService("RunService")
 
-	local rawWait = task.wait
-	globalEnvironment.task.wait = function(seconds)
-		local sec = tonumber(seconds) or 0
-		return rawWait(math.max(sec, 0.01))
-	end
+globalEnvironment.StartFastAttack = function()
+	if globalEnvironment.__FastAttackConn then return end
 
-	if type(globalEnvironment.wait) == "function" then
-		globalEnvironment.wait = function(seconds)
-			local sec = tonumber(seconds) or 0
-			return rawWait(math.max(sec, 0.01))
+	-- Atualiza posição e ataques a cada frame antes da simulação de física
+	globalEnvironment.__FastAttackConn = RunService.Heartbeat:Connect(function()
+		local targetChar = globalEnvironment.GetSpecificTarget()
+		if targetChar and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+			-- CFrame colado a 0.5 studs do alvo
+			local fastCF = globalEnvironment.GetSafeStandPosition(targetChar, 0.5)
+			if fastCF then
+				LocalPlayer.Character.HumanoidRootPart.CFrame = fastCF
+			end
 		end
+	end)
+end
+
+globalEnvironment.StopFastAttack = function()
+	if globalEnvironment.__FastAttackConn then
+		globalEnvironment.__FastAttackConn:Disconnect()
+		globalEnvironment.__FastAttackConn = nil
 	end
 end
 
---// 4. CONFIGURAÇÕES BASE DO FRAMEWORK
+-- Inicia ataque ultrarrápido
+globalEnvironment.StartFastAttack()
+
+--// 5. CONFIGURAÇÕES E VARIÁVEIS BASE DO FRAMEWORK
 local baseUrl = loaderConfig.BaseUrl or "https://raw.githubusercontent.com/GodErste/Y-Core/main/"
-local verbose = loaderConfig.Verbose == true
 local automaticCacheBust = tostring(math.floor(os.clock() * 1000000))
 
 local function getExecutorName()
@@ -113,26 +115,22 @@ local function getExecutorName()
 	return success and tostring(name or "") or ""
 end
 
-local detectedExecutorName = getExecutorName()
-
-local function isPotassiumExecutor()
-	return string.find(string.lower(detectedExecutorName), "potassium", 1, true) ~= nil
-end
-
 local function callable(callback)
 	if type(callback) == "function" then return callback end
 	if type(callback) == "table" then
 		return function(...)
-			local success, a, b, c = pcall(callback, ...)
+			local success, a = pcall(callback, ...)
 			return success and a or nil
 		end
 	end
 	return function() end
 end
 
-local function ensureFunction(env, name, fallback)
-	if type(env[name]) ~= "function" then env[name] = fallback end
-	return env[name]
+local function ensureFunction(environment, name, fallback)
+	if type(environment[name]) ~= "function" then
+		environment[name] = fallback
+	end
+	return environment[name]
 end
 
 ensureFunction(globalEnvironment, "LPH_ATTRIBUTES", function() end)
@@ -161,8 +159,8 @@ end
 
 local function withCacheBust(url)
 	if loaderConfig.NoCacheBust == true then return url end
-	local sep = string.find(url, "?", 1, true) and "&" or "?"
-	return url .. sep .. "v=" .. automaticCacheBust
+	local separator = string.find(url, "?", 1, true) and "&" or "?"
+	return url .. separator .. "v=" .. automaticCacheBust
 end
 
 function Framework:Fetch(modulePath)
