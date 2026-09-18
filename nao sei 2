@@ -1,4 +1,4 @@
---// Y Hub Loader (Versão Completa + Otimização de Performance + Lógica de Distância)
+--// Y Hub Loader (Versão Completa + Predição de Movimento / Anti-Corrida)
 local globalEnvironment = (getgenv and getgenv()) or _G
 local baseEnvironment = (getfenv and getfenv()) or _G
 local loaderConfig = globalEnvironment.YHubLoaderConfig
@@ -6,35 +6,53 @@ local loaderConfig = globalEnvironment.YHubLoaderConfig
 	or globalEnvironment.YAutoSignalLoaderConfig
 	or {}
 
---// 1. TRAVA GLOBAL ANTI-LAG (Alivia o uso excessivo de CPU nos loops do Stand)
+--// 1. TRAVA GLOBAL ANTI-LAG (Otimizada sem prejudicar a precisão dos hits)
 if not globalEnvironment.__AntiLagApplied then
 	globalEnvironment.__AntiLagApplied = true
 
 	local rawWait = task.wait
 	globalEnvironment.task.wait = function(seconds)
 		local sec = tonumber(seconds) or 0
-		return rawWait(math.max(sec, 0.05))
+		return rawWait(math.max(sec, 0.02)) -- 0.02s para acompanhamento imediato de taxa de quadros
 	end
 
 	if type(globalEnvironment.wait) == "function" then
 		globalEnvironment.wait = function(seconds)
 			local sec = tonumber(seconds) or 0
-			return rawWait(math.max(sec, 0.05))
+			return rawWait(math.max(sec, 0.02))
 		end
 	end
 end
 
---// 2. FUNÇÃO AUXILIAR DE POSICIONAMENTO SEGURO (Fora do alcance de golpes)
-globalEnvironment.GetSafeStandPosition = function(targetCharacter, safeDistance)
+--// 2. FUNÇÃO AUXILIAR DE HITBOX E PREDIÇÃO (ANTI-CORRIDA / HITS GARANTIDOS)
+globalEnvironment.GetSafeStandPosition = function(targetCharacter, overrideDistance)
 	if not targetCharacter or not targetCharacter:FindFirstChild("HumanoidRootPart") then
 		return nil
 	end
 
 	local targetRoot = targetCharacter.HumanoidRootPart
-	local distance = tonumber(safeDistance) or 5.5 -- 5.5 studs: fora do alcance do golpe, mas perto do alvo
+	local targetVel = targetRoot.AssemblyLinearVelocity or targetRoot.Velocity
+	
+	-- Distância extremamente curta (0.8 studs) para colar no Hitbox
+	local distance = tonumber(overrideDistance) or 0.8
 
-	-- Calcula a posição segura logo atrás do oponente olhando diretamente para ele
-	local safeCFrame = targetRoot.CFrame * CFrame.new(0, 0, distance)
+	-- Predição de Movimento: calcula onde o inimigo estará com base na velocidade de corrida dele
+	local predictedPosition = targetRoot.Position + (targetVel * 0.15)
+
+	-- Esquiva lateral sutil para escapar de retaliação
+	local clockCycle = (os.clock() * 8) % 3
+	local offsetX = 0
+
+	if clockCycle > 2 then
+		offsetX = -0.8
+	elseif clockCycle > 1 then
+		offsetX = 0.8
+	end
+
+	-- Aplica o CFrame no ponto previsto de corrida
+	local predictedCFrame = CFrame.new(predictedPosition, predictedPosition + targetRoot.CFrame.LookVector)
+	local safeCFrame = predictedCFrame * CFrame.new(offsetX, 0, distance)
+
 	return CFrame.lookAt(safeCFrame.Position, targetRoot.Position)
 end
 
