@@ -1,1 +1,73 @@
+--// Y Hub Loader (Modo Ultra Performance + GPU Priority)
+local globalEnvironment = (getgenv and getgenv()) or _G
+local loaderConfig = globalEnvironment.YHubLoaderConfig or {}
 
+-- 1. FORÇAR USO DE GPU E PREVENIR THROTTLING
+pcall(function()
+	if setfpscap then setfpscap(60) end -- Trava FPS estável para não estressar a CPU
+	game:GetService("RunService"):Set3dRenderingEnabled(true) -- Força a GPU a renderizar a tela
+end)
+
+-- 2. LIMITADOR ANTI-LAG PARA LOOPS DO STAND
+if not globalEnvironment.__UltraAntiLag then
+	globalEnvironment.__UltraAntiLag = true
+	local rawWait = task.wait
+	
+	-- Força intervalo de 0.08s (~12hz) nos loops, aliviando imensamente a CPU
+	globalEnvironment.task.wait = function(sec)
+		return rawWait(math.max(tonumber(sec) or 0, 0.08))
+	end
+	
+	if type(globalEnvironment.wait) == "function" then
+		globalEnvironment.wait = function(sec)
+			return rawWait(math.max(tonumber(sec) or 0, 0.08))
+		end
+	end
+end
+
+-- 3. BOOTSTRAP DIRETO (SEM TRACE/OVERHEAD)
+local baseUrl = loaderConfig.BaseUrl or "https://raw.githubusercontent.com/GodErste/Y-Core/main/"
+if baseUrl:sub(-1) ~= "/" then baseUrl = baseUrl .. "/" end
+
+local function empty() end
+for _, v in ipairs({"LPH_ATTRIBUTES", "VM", "PRESET", "NONE", "FAST"}) do
+	if not globalEnvironment[v] then globalEnvironment[v] = empty end
+end
+
+local Framework = { BaseUrl = baseUrl, Cache = {}, Config = loaderConfig }
+
+function Framework:Fetch(path)
+	return game:HttpGet(self.BaseUrl .. tostring(path):gsub("\\", "/"):gsub("^/+", ""))
+end
+
+function Framework:yrequire(path)
+	path = tostring(path):gsub("\\", "/"):gsub("^/+", "")
+	if self.Cache[path] then return self.Cache[path] end
+
+	local source = self:Fetch(path)
+	local chunk = assert(loadstring(source, "@" .. path))
+	
+	local env = setmetatable({ Framework = self, yrequire = function(p) return self:yrequire(p) end }, { __index = _G })
+	if setfenv then setfenv(chunk, env) end
+
+	local res = chunk() or true
+	self.Cache[path] = res
+	return res
+end
+
+Framework.Require = Framework.yrequire
+globalEnvironment.YHubFramework = Framework
+
+-- 4. START DO JOGO
+local gameRegistry = Framework:yrequire("games/index.lua")
+local selectedGameId = loaderConfig.Game or (gameRegistry.FindByPlaceId and gameRegistry.FindByPlaceId(game.PlaceId)) or "shinsei"
+selectedGameId = tostring(selectedGameId):lower()
+
+local gameInfo = (gameRegistry.GetGame and gameRegistry.GetGame(selectedGameId)) or gameRegistry.Games[selectedGameId]
+local gameModule = Framework:yrequire(gameInfo.Entry or ("games/" .. selectedGameId .. "/init.lua"))
+
+if type(gameModule) == "table" and type(gameModule.Start) == "function" then
+	return gameModule.Start(Framework)
+end
+
+return gameModule
