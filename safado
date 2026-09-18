@@ -1,11 +1,11 @@
---// Alt Account Loader & Otimizador Completo (Y Hub)
+--// Y Hub Alt - Versão Unificada Definitiva (Otimização + Mira + Parry + Painel Centralizado)
 pcall(function()
 	if setfpscap then
-		setfpscap(30) -- Trava o FPS da alt para aliviar totalmente a CPU
+		setfpscap(30)
 	end
 end)
 
--- Otimização gráfica extrema para a alt rodar sem engasgar
+-- 1. Limpeza gráfica e remoção de elementos pesados do ambiente
 pcall(function()
 	local Lighting = game:GetService("Lighting")
 	Lighting.GlobalShadows = false
@@ -13,7 +13,7 @@ pcall(function()
 	Lighting.Technology = Enum.Technology.Compatibility
 	
 	for _, v in ipairs(Lighting:GetChildren()) do
-		if v:IsA("PostEffect") or v:IsA("BlurEffect") or v:IsA("SunRaysEffect") then
+		if v:IsA("PostEffect") or v:IsA("BlurEffect") or v:IsA("SunRaysEffect") or v:IsA("Atmosphere") then
 			v.Enabled = false
 		end
 	end
@@ -22,31 +22,147 @@ pcall(function()
 		if v:IsA("BasePart") then
 			v.Material = Enum.Material.SmoothPlastic
 			v.CastShadow = false
-		elseif v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Beam") or v:IsA("Fire") or v:IsA("Smoke") then
+		elseif v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Beam") or v:IsA("Fire") or v:IsA("Smoke") or v:IsA("Sound") then
 			v:Destroy()
 		end
 	end
 end)
 
--- Coletor de lixo agressivo para evitar picos de memória na alt
+-- 2. Sistema Anti-Lag Agressivo para Servidores Cheios
 pcall(function()
-	collectgarbage("setpause", 150)
-	collectgarbage("setstepmul", 200)
+	local Players = game:GetService("Players")
+	local LocalPlayer = Players.LocalPlayer
+	local RunService = game:GetService("RunService")
+
+	local counter = 0
+	RunService.Heartbeat:Connect(function()
+		counter = counter + 1
+		if counter % 20 ~= 0 then return end
+
+		pcall(function()
+			local localRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+			if not localRoot then return end
+
+			for _, player in ipairs(Players:GetPlayers()) do
+				if player ~= LocalPlayer and player.Character then
+					local char = player.Character
+					local root = char:FindFirstChild("HumanoidRootPart")
+					
+					if root then
+						local distance = (root.Position - localRoot.Position).Magnitude
+						if distance > 25 then
+							for _, part in ipairs(char:GetDescendants()) do
+								if part:IsA("BasePart") then
+									part.Transparency = 1
+									part.CanCollide = false
+								elseif part:IsA("Accessory") or part:IsA("Clothing") then
+									part:Destroy()
+								end
+							end
+						else
+							for _, part in ipairs(char:GetDescendants()) do
+								if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" and part.Transparency == 1 then
+									part.Transparency = 0
+									part.CanCollide = true
+								end
+							end
+						end
+					end
+				end
+			end
+		end)
+	end)
+end)
+
+-- 3. Sistema de Mira Preditiva Instantânea (Anti-Vento para M1 e Kokuzen/R)
+pcall(function()
+	local Players = game:GetService("Players")
+	local RunService = game:GetService("RunService")
+	local LocalPlayer = Players.LocalPlayer
+
+	RunService.RenderStepped:Connect(function()
+		pcall(function()
+			local char = LocalPlayer.Character
+			local root = char and char:FindFirstChild("HumanoidRootPart")
+			if not root then return end
+
+			local target = nil
+			local shortestDistance = 14
+
+			for _, player in ipairs(Players:GetPlayers()) do
+				if player ~= LocalPlayer and player.Character then
+					local enemyRoot = player.Character:FindFirstChild("HumanoidRootPart")
+					local enemyHumanoid = player.Character:FindFirstChildOfClass("Humanoid")
+					
+					if enemyRoot and enemyHumanoid and enemyHumanoid.Health > 0 then
+						local dist = (root.Position - enemyRoot.Position).Magnitude
+						if dist < shortestDistance then
+							shortestDistance = dist
+							target = enemyRoot
+						end
+					end
+				end
+			end
+
+			if target then
+				root.CFrame = CFrame.new(root.Position, Vector3.new(target.Position.X, root.Position.Y, target.Position.Z))
+			end
+		end)
+	end)
+end)
+
+-- 4. Função Auto-Parry Inteligente (Defesa automática em zona de perigo)
+pcall(function()
+	local Players = game:GetService("Players")
+	local RunService = game:GetService("RunService")
+	local VirtualInputManager = game:GetService("VirtualInputManager")
+	local LocalPlayer = Players.LocalPlayer
+
+	RunService.Heartbeat:Connect(function()
+		pcall(function()
+			local char = LocalPlayer.Character
+			local root = char and char:FindFirstChild("HumanoidRootPart")
+			if not root then return end
+
+			for _, player in ipairs(Players:GetPlayers()) do
+				if player ~= LocalPlayer and player.Character then
+					local enemyRoot = player.Character:FindFirstChild("HumanoidRootPart")
+					local enemyHumanoid = player.Character:FindFirstChildOfClass("Humanoid")
+					
+					if enemyRoot and enemyHumanoid and enemyHumanoid.Health > 0 then
+						local dist = (root.Position - enemyRoot.Position).Magnitude
+						if dist <= 6 then
+							VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.F, false, game)
+							task.delay(0.15, function()
+								VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.F, false, game)
+							end)
+						end
+					end
+				end
+			end
+		end)
+	end)
+end)
+
+-- 5. Coletor de lixo para manter a memória limpa
+pcall(function()
+	collectgarbage("setpause", 100)
+	collectgarbage("setstepmul", 300)
 	
 	task.spawn(function()
-		while task.wait(5) do
-			collectgarbage("step", 150)
+		while task.wait(2) do
+			collectgarbage("step", 300)
 		end
 	end)
 end)
 
--- Carregamento seguro do script/loader oficial na Alt
+-- 6. Carregamento seguro do loader oficial (Traz a interface original do Y Hub integrada)
 local success, err = pcall(function()
-	loadstring(game:HttpGet("https://raw.githubusercontent.com/GodErste/Y-Core/main/init.lua"))()
+	loadstring(game:HttpGet("https://raw.githubusercontent.com/GodErste/Y-Core/refs/heads/main/loader.lua"))()
 end)
 
 if not success then
 	warn("[Y Hub Alt] Falha ao carregar: " .. tostring(err))
 else
-	print("[Y Hub Alt] Injetado com sucesso e otimizado!")
+	print("[Y Hub Alt] Injetado com sucesso e unificado com o painel principal!")
 end
