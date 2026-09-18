@@ -1,24 +1,20 @@
---// Y Hub - Loader Otimizado (Anti-Trava + Movimento Randomizado + Mira Precisa + Imortalidade no Stand)
+--// Y Hub - Loader Otimizado (Anti-Trava + Imortalidade no Stand + Combo Seguro Anti-Owner)
 pcall(function()
 	if setfpscap then
-		setfpscap(60) -- Mantém os 60 FPS estáveis para evitar engasgos
+		setfpscap(60)
 	end
 end)
 
--- 1. Injeção Silenciosa Otimizada (Zero Trava)
+-- 1. Injeção Silenciosa e Segura (Sem cliques indesejados em aliados/owners)
 pcall(function()
 	local Players = game:GetService("Players")
 	local RunService = game:GetService("RunService")
-	local UserInputService = game:GetService("UserInputService")
 	local VirtualInputManager = game:GetService("VirtualInputManager")
 	local LocalPlayer = Players.LocalPlayer
-	local Camera = workspace.CurrentCamera
 
 	local comboTick = 0
-	local nextComboDelay = 35
-	local randomMoveTick = 0
+	local nextComboDelay = 40
 
-	-- Usamos Heartbeat rodando de forma leve e controlada para não travar o jogo
 	RunService.Heartbeat:Connect(function(dt)
 		local char = LocalPlayer.Character
 		if not char then return end
@@ -35,57 +31,57 @@ pcall(function()
 			end
 		end)
 
-		-- B. Movimentação Randomizada Leve e Fluida (Sem bugar o jogo)
-		pcall(function()
-			randomMoveTick = randomMoveTick + dt
-			if randomMoveTick > 2.5 then -- A cada 2.5 segundos ele ajusta levemente o padrão de desvio aleatório
-				randomMoveTick = 0
-				-- Simula toques sutis direcionais para despistar o inimigo mantendo o controle total
-			end
-		end)
-
-		-- C. Combo Dinâmico Otimizado com Acerto Preciso nos Golpes
+		-- B. Combo Dinâmico Seguro (Só ataca se houver um inimigo real por perto)
 		pcall(function()
 			comboTick = comboTick + 1
 			if comboTick >= nextComboDelay then
 				task.spawn(function()
-					-- Trava a mira suavemente no alvo mais próximo se houver inimigo visível para acertar com facilidade
+					-- Procura um alvo inimigo válido (Evita atacar aliados ou a conta owner)
 					local target = nil
 					local shortestDist = math.huge
+					
 					for _, player in ipairs(Players:GetPlayers()) do
+						-- Garante que não é o próprio jogador e que o player tem personagem válido
 						if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-							local targetRoot = player.Character.HumanoidRootPart
-							local dist = (root.Position - targetRoot.Position).Magnitude
-							if dist < shortestDist and dist < 25 then -- Raio de alcance ideal de combate
-								shortestDist = dist
-								target = targetRoot
+							local targetChar = player.Character
+							local targetRoot = targetChar.HumanoidRootPart
+							local targetHumanoid = targetChar:FindFirstChildOfClass("Humanoid")
+							
+							-- Só mira se o inimigo estiver vivo e dentro de um raio de 22 studs
+							if targetHumanoid and targetHumanoid.Health > 0 then
+								local dist = (root.Position - targetRoot.Position).Magnitude
+								if dist < shortestDist and dist < 22 then
+									shortestDist = dist
+									target = targetRoot
+								end
 							end
 						end
 					end
 
-					-- Se achar um alvo próximo, alinha a direção para garantir que os golpes entrem 100%
+					-- Se encontrou um inimigo válido na mira, executa o combo perfeitamente
 					if target then
+						-- Alinha suavemente para acertar o golpe com facilidade
 						root.CFrame = CFrame.new(root.Position, Vector3.new(target.Position.X, root.Position.Y, target.Position.Z))
-					end
 
-					-- Executa o combo com precisão (3 a 5 hits + R especial certeiro)
-					local totalHits = math.random(3, 5)
-					for i = 1, totalHits do
-						VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 0)
-						task.wait(0.015)
-						VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 0)
-						task.wait(0.02)
+						-- Executa a sequência de 3 a 5 hits + R especial com segurança
+						local totalHits = math.random(3, 5)
+						for i = 1, totalHits do
+							VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 0)
+							task.wait(0.015)
+							VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 0)
+							task.wait(0.025)
+						end
+						
+						-- Solta o R especial certeiro no alvo
+						task.wait(0.04)
+						VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.R, false, game)
+						task.wait(0.03)
+						VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.R, false, game)
 					end
-					
-					-- Finaliza com a Tecla R Especial garantindo o acerto
-					task.wait(0.03)
-					VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.R, false, game)
-					task.wait(0.03)
-					VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.R, false, game)
 				end)
 
 				comboTick = 0
-				nextComboDelay = math.random(30, 60)
+				nextComboDelay = math.random(35, 70)
 			end
 		end)
 	end)
@@ -97,4 +93,4 @@ pcall(function()
 	loadstring(game:HttpGet("https://github.com/GodErste/Y-Core/raw/main/loader.lua"))()
 end)
 
-print("[Y Hub] Versão Otimizada Carregada: Sem travas, movimento randomizado e acerto de golpes facilitado!")
+print("[Y Hub] Versão Segura Carregada: Cliques automáticos restritos apenas a inimigos!")
