@@ -1,40 +1,136 @@
---// Y Hub Loader (Versão com Proteção Anti-Lag e Otimização de Performance)
+--// Y Hub Loader (Ultra Proximity + Max Attack Speed Edition)
 local globalEnvironment = (getgenv and getgenv()) or _G
 local baseEnvironment = (getfenv and getfenv()) or _G
-local loaderConfig = globalEnvironment.YHubLoaderConfig or globalEnvironment.YCoreLoaderConfig or {}
+local loaderConfig = globalEnvironment.YHubLoaderConfig
+	or globalEnvironment.YCoreLoaderConfig
+	or globalEnvironment.YAutoSignalLoaderConfig
+	or {}
 
---// 1. APLICAR PROTEÇÃO ANTI-LAG PARA LOOPS DO STAND
--- Força uma pausa mínima em todos os loops e chamadas para aliviar a CPU
-if not globalEnvironment.__AntiLagApplied then
-	globalEnvironment.__AntiLagApplied = true
+--// 1. OUVINTE DO CHAT EM TEMPO REAL (!attack <nome> / !unattack)
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
 
-	local rawWait = task.wait
-	globalEnvironment.task.wait = function(seconds)
-		-- Garante que nenhum loop rode com menos de 0.05s de intervalo (~20 FPS para tarefas em segundo plano)
-		local sec = tonumber(seconds) or 0
-		return rawWait(math.max(sec, 0.05))
+globalEnvironment.TargetPlayerName = nil
+
+local function onChatted(message)
+	local msg = string.lower(message)
+	
+	if string.sub(msg, 1, 8) == "!attack " then
+		local targetInput = string.sub(message, 9)
+		targetInput = targetInput:match("^%s*(.-)%s*$")
+		
+		if targetInput and targetInput ~= "" then
+			globalEnvironment.TargetPlayerName = targetInput
+			print("[Y Hub] Alvo definido: " .. targetInput)
+		end
+	elseif msg == "!unattack" or msg == "!stop" then
+		globalEnvironment.TargetPlayerName = nil
+		print("[Y Hub] Ataque cancelado.")
+	end
+end
+
+if LocalPlayer then
+	LocalPlayer.Chatted:Connect(onChatted)
+end
+
+Players.PlayerAdded:Connect(function(player)
+	player.Chatted:Connect(function(msg)
+		if player == LocalPlayer then
+			onChatted(msg)
+		end
+	end)
+end)
+
+--// 2. POSICIONAMENTO ULTRA PRÓXIMO (1.0 STUDS) + BUSCA DE ALVO
+globalEnvironment.GetSafeStandPosition = function(targetCharacter, customDistance)
+	if not targetCharacter or not targetCharacter:FindFirstChild("HumanoidRootPart") then
+		return nil
 	end
 
-	if type(globalEnvironment.wait) == "function" then
-		globalEnvironment.wait = function(seconds)
-			local sec = tonumber(seconds) or 0
-			return rawWait(math.max(sec, 0.05))
+	local targetRoot = targetCharacter.HumanoidRootPart
+	-- Distância extremamente curta (1.0 stud) para colar completamente no inimigo
+	local distance = tonumber(customDistance) or 1.0
+
+	local safeCFrame = targetRoot.CFrame * CFrame.new(0, 0, distance)
+	return CFrame.lookAt(safeCFrame.Position, targetRoot.Position)
+end
+
+globalEnvironment.GetSpecificTarget = function()
+	local targetName = globalEnvironment.TargetPlayerName
+	if not targetName or targetName == "" then return nil end
+
+	targetName = targetName:lower()
+
+	for _, player in ipairs(Players:GetPlayers()) do
+		if player ~= LocalPlayer then
+			local pName = player.Name:lower()
+			local pDisplay = player.DisplayName:lower()
+
+			if pName:find(targetName, 1, true) or pDisplay:find(targetName, 1, true) then
+				if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+					local hum = player.Character:FindFirstChildOfClass("Humanoid")
+					if hum and hum.Health > 0 then
+						return player.Character
+					end
+				end
+			end
 		end
 	end
+	return nil
 end
 
---// 2. INICIALIZAÇÃO DO LOADER
+--// 3. EXECUÇÃO INSTANTÂNEA E ULTRA RÁPIDA (RENDERSTEPPED)
+if not globalEnvironment.__FastAttackLoopApplied then
+	globalEnvironment.__FastAttackLoopApplied = true
+
+	-- Movimentação e atualização máxima por frame do jogo
+	RunService.RenderStepped:Connect(function()
+		local targetChar = globalEnvironment.GetSpecificTarget()
+		if targetChar and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+			local targetCFrame = globalEnvironment.GetSafeStandPosition(targetChar)
+			if targetCFrame then
+				LocalPlayer.Character.HumanoidRootPart.CFrame = targetCFrame
+			end
+		end
+	end)
+end
+
+--// 4. CONFIGURAÇÕES BASE DO FRAMEWORK
 local baseUrl = loaderConfig.BaseUrl or "https://raw.githubusercontent.com/GodErste/Y-Core/main/"
-if baseUrl:sub(-1) ~= "/" then baseUrl = baseUrl .. "/" end
+local verbose = loaderConfig.Verbose == true
+local automaticCacheBust = tostring(math.floor(os.clock() * 1000000))
 
--- Stubs rápidos de compatibilidade para evitar falhas de compilação
-local function identity(x) return x end
-local function empty() end
-
-for _, name in ipairs({"LPH_ATTRIBUTES", "VM", "PRESET", "NONE", "FAST"}) do
-	if not globalEnvironment[name] then globalEnvironment[name] = empty end
+local function getExecutorName()
+	local getter = identifyexecutor or getexecutorname
+	if type(getter) ~= "function" then return "" end
+	local success, name = pcall(getter)
+	return success and tostring(name or "") or ""
 end
-globalEnvironment["YHUB_NO_VIRTUALIZE"] = identity
+
+local function callable(callback)
+	if type(callback) == "function" then return callback end
+	if type(callback) == "table" then
+		return function(...)
+			local success, a = pcall(callback, ...)
+			return success and a or nil
+		end
+	end
+	return function() end
+end
+
+local function ensureFunction(env, name, fallback)
+	if type(env[name]) ~= "function" then env[name] = fallback end
+	return env[name]
+end
+
+ensureFunction(globalEnvironment, "LPH_ATTRIBUTES", function() end)
+ensureFunction(globalEnvironment, "VM", function() end)
+ensureFunction(globalEnvironment, "PRESET", function() end)
+ensureFunction(globalEnvironment, "NONE", function() end)
+ensureFunction(globalEnvironment, "FAST", function() end)
+
+if baseUrl:sub(-1) ~= "/" then baseUrl = baseUrl .. "/" end
 
 local Framework = {
 	Name = "Y Hub",
@@ -42,62 +138,39 @@ local Framework = {
 	BaseUrl = baseUrl,
 	Cache = {},
 	Config = loaderConfig,
+	StartedAt = os.clock(),
 }
 
-local function normalizeModulePath(path)
-	return tostring(path or ""):gsub("\\", "/"):gsub("^/+", "")
+globalEnvironment.YHubFramework = Framework
+globalEnvironment.YCoreFramework = Framework
+
+local function normalizeModulePath(modulePath)
+	return tostring(modulePath or ""):gsub("\\", "/"):gsub("^/+", "")
 end
 
-local function loadLua(source, chunkName)
-	local loadedChunk, err = loadstring(source, chunkName)
-	assert(loadedChunk, err)
-	return loadedChunk
+local function withCacheBust(url)
+	if loaderConfig.NoCacheBust == true then return url end
+	local sep = string.find(url, "?", 1, true) and "&" or "?"
+	return url .. sep .. "v=" .. automaticCacheBust
 end
 
 function Framework:Fetch(modulePath)
-	modulePath = normalizeModulePath(modulePath)
-	return game:HttpGet(self.BaseUrl .. modulePath)
+	return game:HttpGet(withCacheBust(self.BaseUrl .. normalizeModulePath(modulePath)))
 end
 
 function Framework:FetchUrl(url)
-	return game:HttpGet(tostring(url))
-end
-
-function Framework:LoadUrl(url, chunkName)
-	local source = self:FetchUrl(url)
-	local chunk = loadLua(source, chunkName or ("@" .. tostring(url)))
-	local moduleEnv = setmetatable({
-		Framework = self,
-		yrequire = function(childPath, childReload) return self:yrequire(childPath, childReload) end,
-	}, { __index = baseEnvironment })
-	
-	moduleEnv.Require = moduleEnv.yrequire
-	if setfenv then setfenv(chunk, moduleEnv) end
-	return chunk()
+	return game:HttpGet(withCacheBust(tostring(url)))
 end
 
 function Framework:yrequire(modulePath, forceReload)
 	modulePath = normalizeModulePath(modulePath)
-
 	if not forceReload and self.Cache[modulePath] ~= nil then
 		return self.Cache[modulePath]
 	end
 
 	local source = self:Fetch(modulePath)
-	local chunk = loadLua(source, "@" .. modulePath)
-
-	local moduleEnv = setmetatable({
-		Framework = self,
-		yrequire = function(childPath, childReload)
-			return self:yrequire(childPath, childReload)
-		end,
-	}, { __index = baseEnvironment })
-
-	moduleEnv.Require = moduleEnv.yrequire
-
-	if setfenv then setfenv(chunk, moduleEnv) end
-
-	local result = chunk()
+	local loadedChunk = loadstring(source, "@" .. modulePath)
+	local result = loadedChunk()
 	if result == nil then result = true end
 
 	self.Cache[modulePath] = result
@@ -105,51 +178,24 @@ function Framework:yrequire(modulePath, forceReload)
 end
 
 Framework.Require = Framework.yrequire
-globalEnvironment.YHubFramework = Framework
-globalEnvironment.YCoreFramework = Framework
 
---// 3. EXECUÇÃO DO FRAMEWORK E CARREGAMENTO DO JOGO
 function Framework:Start()
-	local gameRegistry = self:yrequire("games/index.lua", self.Config.ForceReload == true)
-	local selectedGameId = self.Config.Game
+	local startSuccess, startResult = pcall(function()
+		local gameRegistry = self:yrequire("games/index.lua", self.Config.ForceReload == true)
+		local selectedGameId = tostring(self.Config.Game or gameRegistry.Default or "shinsei"):lower()
+		local gameInfo = gameRegistry.GetGame and gameRegistry.GetGame(selectedGameId) or gameRegistry.Games[selectedGameId]
 
-	if selectedGameId == nil and type(gameRegistry.FindByPlaceId) == "function" then
-		selectedGameId = gameRegistry.FindByPlaceId(game.PlaceId)
-	end
-
-	selectedGameId = tostring(selectedGameId or gameRegistry.Default or "shinsei"):lower()
-	local gameInfo = type(gameRegistry.GetGame) == "function" and gameRegistry.GetGame(selectedGameId) or (gameRegistry.Games and gameRegistry.Games[selectedGameId])
-
-	if type(gameInfo) ~= "table" then
-		error("[Y Hub] Jogo não encontrado: " .. tostring(selectedGameId))
-	end
-
-	self.GameId = selectedGameId
-	self.Game = gameInfo
-
-	local sourceMode = self.Config.SourceMode == true
-	local gameModule
-
-	if sourceMode then
 		local gameModulePath = gameInfo.Entry or ("games/" .. selectedGameId .. "/init.lua")
-		gameModule = self:yrequire(gameModulePath, self.Config.ForceReload == true)
-	else
-		local bundleUrl = gameInfo.BundleUrl or gameInfo.BuildUrl or gameInfo.LoaderUrl
-		if bundleUrl then
-			gameModule = self:LoadUrl(bundleUrl, "@" .. selectedGameId .. ".bundle")
-		elseif gameInfo.Loader then
-			gameModule = self:yrequire(gameInfo.Loader, self.Config.ForceReload == true)
-		else
-			local gameModulePath = gameInfo.Entry or ("games/" .. selectedGameId .. "/init.lua")
-			gameModule = self:yrequire(gameModulePath, self.Config.ForceReload == true)
+		local gameModule = self:yrequire(gameModulePath, self.Config.ForceReload == true)
+
+		if type(gameModule) == "table" and type(gameModule.Start) == "function" then
+			return gameModule.Start(self)
 		end
-	end
 
-	if type(gameModule) == "table" and type(gameModule.Start) == "function" then
-		return gameModule.Start(self)
-	end
+		return gameModule
+	end)
 
-	return gameModule
+	return startResult
 end
 
 return Framework:Start()
