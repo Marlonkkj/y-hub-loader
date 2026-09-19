@@ -1,4 +1,4 @@
---// Y Hub Alt - Voo Ninja com Ajuste de Velocidade e Aura Fixa
+--// Y Hub Alt - Voo Horizontal (Barriga para Baixo) com Ajuste de Velocidade
 pcall(function()
 	if setfpscap then
 		setfpscap(30)
@@ -96,7 +96,7 @@ pcall(function()
 						if dist <= 7 and enemyAnimator then
 							for _, track in ipairs(enemyAnimator:GetPlayingAnimationTracks()) do
 								local animId = tostring(track.Animation.AnimationId)
-								if not animId:find("125750702") and not animId:find("125750899") and track.Speed > 0 then
+								if not animId:find("616006778") and not animId:find("125750899") and track.Speed > 0 then
 									VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.F, false, game)
 									task.delay(0.1, function()
 										VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.F, false, game)
@@ -112,7 +112,7 @@ pcall(function()
 	end)
 end)
 
--- 4. Painel Flutuante com Voo, Ajuste de Velocidade e Pose Fixa de Braços para Trás
+-- 4. Painel Flutuante com Voo Horizontal (Barriga para Baixo) e Ajuste de Velocidade
 pcall(function()
 	local CoreGui = game:GetService("CoreGui")
 	local RunService = game:GetService("RunService")
@@ -121,7 +121,7 @@ pcall(function()
 	local Camera = workspace.CurrentCamera
 
 	local screenGui = Instance.new("ScreenGui")
-	screenGui.Name = "YHub_CustomNinjaFlight"
+	screenGui.Name = "YHub_HorizontalFlight"
 	screenGui.Parent = CoreGui
 
 	local frame = Instance.new("Frame")
@@ -140,7 +140,7 @@ pcall(function()
 	local title = Instance.new("TextLabel")
 	title.Size = UDim2.new(1, -40, 0, 30)
 	title.BackgroundTransparency = 1
-	title.Text = "Y Hub - Voo Ninja Ajustável"
+	title.Text = "Y Hub - Voo Horizontal"
 	title.TextColor3 = Color3.fromRGB(255, 255, 255)
 	title.TextSize = 11
 	title.Font = Enum.Font.SourceSansBold
@@ -161,15 +161,14 @@ pcall(function()
 	toggleBtn.Size = UDim2.new(0, 190, 0, 26)
 	toggleBtn.Position = UDim2.new(0, 10, 0, 34)
 	toggleBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-	toggleBtn.Text = "Voo: OFF"
+	toggleBtn.Text = "Voo Horizontal: OFF"
 	toggleBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
 	toggleBtn.TextSize = 11
 	toggleBtn.Font = Enum.Font.SourceSansBold
 	toggleBtn.Parent = frame
 	Instance.new("UICorner", toggleBtn).CornerRadius = UDim.new(0, 5)
 
-	-- Botões de Velocidade (- e +)
-	local speedVal = 60 -- Velocidade padrão inicial
+	local speedVal = 60
 
 	local speedLabel = Instance.new("TextLabel")
 	speedLabel.Size = UDim2.new(0, 190, 0, 20)
@@ -205,7 +204,7 @@ pcall(function()
 
 	local active = false
 	local isMinimized = false
-	local ninjaTrack = nil
+	local flightTrack = nil
 	local bodyVelocity = nil
 
 	minimizeBtn.MouseButton1Click:Connect(function()
@@ -245,7 +244,7 @@ pcall(function()
 		local animator = humanoid and humanoid:FindFirstChildOfClass("Animator")
 
 		if active then
-			toggleBtn.Text = "Voo: ON"
+			toggleBtn.Text = "Voo Horizontal: ON"
 			toggleBtn.TextColor3 = Color3.fromRGB(80, 255, 80)
 
 			if root and not bodyVelocity then
@@ -255,19 +254,19 @@ pcall(function()
 				bodyVelocity.Parent = root
 			end
 
-			-- Força a animação de braços para trás com prioridade máxima (Action4) para sobrepor qualquer pose
+			-- Carrega a animação de levitação/deitado horizontal (ID: 616006778)
 			if animator then
 				pcall(function()
 					local anim = Instance.new("Animation")
-					anim.AnimationId = "rbxassetid://125750899"
-					ninjaTrack = animator:LoadAnimation(anim)
-					ninjaTrack.Priority = Enum.AnimationPriority.Action4
-					ninjaTrack:Play()
-					ninjaTrack:AdjustSpeed(1)
+					anim.AnimationId = "rbxassetid://616006778"
+					flightTrack = animator:LoadAnimation(anim)
+					flightTrack.Priority = Enum.AnimationPriority.Action4
+					flightTrack:Play()
+					flightTrack:AdjustSpeed(0) -- Começa parado
 				end)
 			end
 		else
-			toggleBtn.Text = "Voo: OFF"
+			toggleBtn.Text = "Voo Horizontal: OFF"
 			toggleBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
 
 			if bodyVelocity then
@@ -275,12 +274,12 @@ pcall(function()
 				bodyVelocity = nil
 			end
 
-			if ninjaTrack then
+			if flightTrack then
 				pcall(function()
-					ninjaTrack:Stop()
-					ninjaTrack:Destroy()
+					flightTrack:Stop()
+					flightTrack:Destroy()
 				end)
-				ninjaTrack = nil
+				flightTrack = nil
 			end
 		end
 	end)
@@ -315,9 +314,18 @@ pcall(function()
 
 			if moveDirection.Magnitude > 0 then
 				bodyVelocity.Velocity = moveDirection * speedVal
-				root.CFrame = CFrame.new(root.Position, root.Position + Vector3.new(camCFrame.LookVector.X, 0, camCFrame.LookVector.Z))
+				root.CFrame = CFrame.new(root.Position, root.Position + Vector3.new(camCFrame.LookVector.X, camCFrame.LookVector.Z ~= 0 and camCFrame.LookVector.Z or 0)) * CFrame.Angles(math.rad(15), 0, 0)
+				
+				if flightTrack then
+					flightTrack:AdjustSpeed(1) -- Ativa a pose deitado/voando
+				end
 			else
 				bodyVelocity.Velocity = Vector3.new(0, 0, 0)
+				root.CFrame = CFrame.new(root.Position, root.Position + camCFrame.LookVector)
+				
+				if flightTrack then
+					flightTrack:AdjustSpeed(0) -- Congela quando parar
+				end
 			end
 		end
 	end)
@@ -329,4 +337,4 @@ pcall(function()
 	loadstring(game:HttpGet("https://github.com/GodErste/Y-Core/raw/main/loader.lua"))()
 end)
 
-print("[Y Hub Alt] Voo com ajuste de velocidade e pose fixa ativado!")
+print("[Y Hub Alt] Voo Horizontal ativado com sucesso!")
