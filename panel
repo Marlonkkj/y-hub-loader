@@ -1,4 +1,4 @@
---// Y Hub Alt - Voo com Caminhada Lenta e Braços para Trás
+--// Y Hub Alt - Voo Lento com Braços para Trás (Modo Físico Direto)
 pcall(function()
 	if setfpscap then
 		setfpscap(30)
@@ -15,7 +15,7 @@ pcall(function()
 	Lighting.Technology = Enum.Technology.Compatibility
 end)
 
--- 2. Anti-Lag com raio de visão ajustado para 80 studs
+-- 2. Anti-Lag com raio de visão em 80 studs
 pcall(function()
 	local Players = game:GetService("Players")
 	local LocalPlayer = Players.LocalPlayer
@@ -56,7 +56,7 @@ pcall(function()
 							end
 						else
 							for _, part in ipairs(char:GetDescendants()) do
-								if part:IsA("BasePart" ) and part.Name ~= "HumanoidRootPart" and part.Transparency == 1 then
+								if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" and part.Transparency == 1 then
 									part.Transparency = 0
 									part.CanCollide = true
 								end
@@ -112,7 +112,7 @@ pcall(function()
 	end)
 end)
 
--- 4. Painel Flutuante com Caminhada Lenta e Braços para Trás
+-- 4. Painel Flutuante com Caminhada Lenta e Braços para Trás (Modo Direto)
 pcall(function()
 	local CoreGui = game:GetService("CoreGui")
 	local RunService = game:GetService("RunService")
@@ -121,7 +121,7 @@ pcall(function()
 	local Camera = workspace.CurrentCamera
 
 	local screenGui = Instance.new("ScreenGui")
-	screenGui.Name = "YHub_SlowWalkFlight"
+	screenGui.Name = "YHub_NinjaWalk"
 	screenGui.Parent = CoreGui
 
 	local frame = Instance.new("Frame")
@@ -140,7 +140,7 @@ pcall(function()
 	local title = Instance.new("TextLabel")
 	title.Size = UDim2.new(1, -40, 0, 30)
 	title.BackgroundTransparency = 1
-	title.Text = "Y Hub - Caminhada Lenta"
+	title.Text = "Y Hub - Braços p/ Trás"
 	title.TextColor3 = Color3.fromRGB(255, 255, 255)
 	title.TextSize = 11
 	title.Font = Enum.Font.SourceSansBold
@@ -161,7 +161,7 @@ pcall(function()
 	toggleBtn.Size = UDim2.new(0, 190, 0, 30)
 	toggleBtn.Position = UDim2.new(0, 10, 0, 38)
 	toggleBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-	toggleBtn.Text = "Caminhada Lenta: OFF"
+	toggleBtn.Text = "Modo Ninja: OFF"
 	toggleBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
 	toggleBtn.TextSize = 11
 	toggleBtn.Font = Enum.Font.SourceSansBold
@@ -170,7 +170,6 @@ pcall(function()
 
 	local active = false
 	local isMinimized = false
-	local ninjaTrack = nil
 	local bodyVelocity = nil
 
 	minimizeBtn.MouseButton1Click:Connect(function()
@@ -190,11 +189,9 @@ pcall(function()
 		active = not active
 		local char = LocalPlayer.Character
 		local root = char and char:FindFirstChild("HumanoidRootPart")
-		local humanoid = char and char:FindFirstChildOfClass("Humanoid")
-		local animator = humanoid and humanoid:FindFirstChildOfClass("Animator")
 
 		if active then
-			toggleBtn.Text = "Caminhada Lenta: ON"
+			toggleBtn.Text = "Modo Ninja: ON"
 			toggleBtn.TextColor3 = Color3.fromRGB(80, 255, 80)
 
 			if root and not bodyVelocity then
@@ -203,34 +200,13 @@ pcall(function()
 				bodyVelocity.Velocity = Vector3.new(0, 0, 0)
 				bodyVelocity.Parent = root
 			end
-
-			-- Carrega a animação com velocidade reduzida para o passo ficar bem lento
-			if animator then
-				pcall(function()
-					local anim = Instance.new("Animation")
-					anim.AnimationId = "rbxassetid://125750899"
-					ninjaTrack = animator:LoadAnimation(anim)
-					ninjaTrack.Priority = Enum.AnimationPriority.Action4
-					ninjaTrack:Play()
-					-- Ajustado para 0.5 (metade da velocidade normal, simulando um passo lento flutuando)
-					ninjaTrack:AdjustSpeed(0.5)
-				end)
-			end
 		else
-			toggleBtn.Text = "Caminhada Lenta: OFF"
+			toggleBtn.Text = "Modo Ninja: OFF"
 			toggleBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
 
 			if bodyVelocity then
 				bodyVelocity:Destroy()
 				bodyVelocity = nil
-			end
-
-			if ninjaTrack then
-				pcall(function()
-					ninjaTrack:Stop()
-					ninjaTrack:Destroy()
-				end)
-				ninjaTrack = nil
 			end
 		end
 	end)
@@ -246,6 +222,19 @@ pcall(function()
 					part.CanCollide = false
 				end
 			end
+
+			-- Força os braços para trás manipulando diretamente as juntas se for R6 ou R15
+			pcall(function()
+				local torso = char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso")
+				if torso then
+					local rShoulder = torso:FindFirstChild("Right Shoulder") or torso:FindFirstChild("RightShoulder")
+					local lShoulder = torso:FindFirstChild("Left Shoulder") or torso:FindFirstChild("LeftShoulder")
+					if rShoulder and lShoulder then
+						rShoulder.Transform = CFrame.Angles(math.rad(90), 0, math.rad(-30))
+						lShoulder.Transform = CFrame.Angles(math.rad(90), 0, math.rad(30))
+					end
+				end
+			end)
 
 			local camCFrame = Camera.CFrame
 			local moveDirection = Vector3.new(0, 0, 0)
@@ -263,9 +252,8 @@ pcall(function()
 				moveDirection = moveDirection + camCFrame.RightVector
 			end
 
-			-- Movimentação mais suave e lenta (velocidade 22 em vez de 50)
 			if moveDirection.Magnitude > 0 then
-				bodyVelocity.Velocity = moveDirection * 22
+				bodyVelocity.Velocity = moveDirection * 20 -- Caminhada lenta no ar
 				root.CFrame = CFrame.new(root.Position, root.Position + Vector3.new(camCFrame.LookVector.X, 0, camCFrame.LookVector.Z))
 			else
 				bodyVelocity.Velocity = Vector3.new(0, 0, 0)
@@ -280,4 +268,4 @@ pcall(function()
 	loadstring(game:HttpGet("https://github.com/GodErste/Y-Core/raw/main/loader.lua"))()
 end)
 
-print("[Y Hub Alt] Voo com caminhada lenta ativado!")
+print("[Y Hub Alt] Voo com braços para trás fixados ativado!")
