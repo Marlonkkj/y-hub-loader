@@ -1,4 +1,4 @@
---// Y Hub Alt - NoClip com Pose de Aura
+--// Y Hub Alt - Flutuação Suave + Ativação de Pose de Aura
 pcall(function()
 	if setfpscap then
 		setfpscap(30)
@@ -130,14 +130,16 @@ pcall(function()
 	end)
 end)
 
--- 4. Painel Flutuante com NoClip Integrado à Pose de Aura
+-- 4. Painel Flutuante com NoClip, Flutuação e Ativação de Aura
 pcall(function()
 	local CoreGui = game:GetService("CoreGui")
 	local RunService = game:GetService("RunService")
+	local UserInputService = game:GetService("UserInputService")
 	local LocalPlayer = game:GetService("Players").LocalPlayer
+	local Camera = workspace.CurrentCamera
 
 	local screenGui = Instance.new("ScreenGui")
-	screenGui.Name = "YHub_NoClipAura"
+	screenGui.Name = "YHub_FloatAura"
 	screenGui.Parent = CoreGui
 
 	local frame = Instance.new("Frame")
@@ -156,7 +158,7 @@ pcall(function()
 	local title = Instance.new("TextLabel")
 	title.Size = UDim2.new(1, -40, 0, 30)
 	title.BackgroundTransparency = 1
-	title.Text = "Y Hub - NoClip com Aura"
+	title.Text = "Y Hub - Flutuação & Aura"
 	title.TextColor3 = Color3.fromRGB(255, 255, 255)
 	title.TextSize = 11
 	title.Font = Enum.Font.SourceSansBold
@@ -173,71 +175,119 @@ pcall(function()
 	minimizeBtn.Parent = frame
 	Instance.new("UICorner", minimizeBtn).CornerRadius = UDim.new(0, 4)
 
-	local noclipBtn = Instance.new("TextButton")
-	noclipBtn.Size = UDim2.new(0, 190, 0, 30)
-	noclipBtn.Position = UDim2.new(0, 10, 0, 38)
-	noclipBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-	noclipBtn.Text = "NoClip + Pose Aura: OFF"
-	noclipBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
-	noclipBtn.TextSize = 11
-	noclipBtn.Font = Enum.Font.SourceSansBold
-	noclipBtn.Parent = frame
-	Instance.new("UICorner", noclipBtn).CornerRadius = UDim.new(0, 5)
+	local toggleBtn = Instance.new("TextButton")
+	toggleBtn.Size = UDim2.new(0, 190, 0, 30)
+	toggleBtn.Position = UDim2.new(0, 10, 0, 38)
+	toggleBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+	toggleBtn.Text = "Flutuar + Aura: OFF"
+	toggleBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
+	toggleBtn.TextSize = 11
+	toggleBtn.Font = Enum.Font.SourceSansBold
+	toggleBtn.Parent = frame
+	Instance.new("UICorner", toggleBtn).CornerRadius = UDim.new(0, 5)
 
-	local noclipActive = false
+	local active = false
 	local isMinimized = false
+	local bodyVelocity, bodyGyro = nil, nil
 
 	minimizeBtn.MouseButton1Click:Connect(function()
 		isMinimized = not isMinimized
 		if isMinimized then
-			noclipBtn.Visible = false
+			toggleBtn.Visible = false
 			frame.Size = UDim2.new(0, 210, 0, 30)
 			minimizeBtn.Text = "+"
 		else
-			noclipBtn.Visible = true
+			toggleBtn.Visible = true
 			frame.Size = UDim2.new(0, 210, 0, 80)
 			minimizeBtn.Text = "-"
 		end
 	end)
 
-	noclipBtn.MouseButton1Click:Connect(function()
-		noclipActive = not noclipActive
-		if noclipActive then
-			noclipBtn.Text = "NoClip + Pose Aura: ON"
-			noclipBtn.TextColor3 = Color3.fromRGB(80, 255, 80)
+	toggleBtn.MouseButton1Click:Connect(function()
+		active = not active
+		local char = LocalPlayer.Character
+		local root = char and char:FindFirstChild("HumanoidRootPart")
+		local humanoid = char and char:FindFirstChildOfClass("Humanoid")
+
+		if active then
+			toggleBtn.Text = "Flutuar + Aura: ON"
+			toggleBtn.TextColor3 = Color3.fromRGB(80, 255, 80)
+			
+			if root and humanoid then
+				-- Cria os motores de física para manter o personagem flutuando sem cair
+				if not root:FindFirstChild("YHubFloatVelocity") then
+					bodyVelocity = Instance.new("BodyVelocity")
+					bodyVelocity.Name = "YHubFloatVelocity"
+					bodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+					bodyVelocity.Velocity = Vector3.new(0, 0, 0)
+					bodyVelocity.Parent = root
+
+					bodyGyro = Instance.new("BodyGyro")
+					bodyGyro.Name = "YHubFloatGyro"
+					bodyGyro.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+					bodyGyro.P = 3000
+					bodyGyro.Parent = root
+				end
+			end
 		else
-			noclipBtn.Text = "NoClip + Pose Aura: OFF"
-			noclipBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
+			toggleBtn.Text = "Flutuar + Aura: OFF"
+			toggleBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
+			
+			if root then
+				local bv = root:FindFirstChild("YHubFloatVelocity")
+				local bg = root:FindFirstChild("YHubFloatGyro")
+				if bv then bv:Destroy() end
+				if bg then bg:Destroy() end
+			end
+			if humanoid then
+				humanoid.PlatformStand = false
+			end
 		end
 	end)
 
 	RunService.RenderStepped:Connect(function()
 		local char = LocalPlayer.Character
 		if not char then return end
+		local root = char:FindFirstChild("HumanoidRootPart")
 		local humanoid = char:FindFirstChildOfClass("Humanoid")
-		local animator = humanoid and humanoid:FindFirstChildOfClass("Animator")
 
-		if noclipActive then
-			-- Desativa a colisão de todas as partes do personagem
+		if active and root and humanoid then
+			-- Desativa colisão (NoClip)
 			for _, part in ipairs(char:GetDescendants()) do
 				if part:IsA("BasePart") then
 					part.CanCollide = false
 				end
 			end
 
-			-- Força a execução/ativação da pose de aura/animação vinculada
-			if animator then
-				local hasAuraPlaying = false
-				for _, track in ipairs(animator:GetPlayingAnimationTracks()) do
-					-- Identificador ou termo genérico para a animação de aura/pose do framework
-					if track.Animation.AnimationId:find("Aura") or track.Name:find("Aura") or track.WeightCurrent > 0 then
-						hasAuraPlaying = true
-						break
-					end
+			humanoid.PlatformStand = true
+			local camCFrame = Camera.CFrame
+			local moveDirection = Vector3.new(0, 0, 0)
+
+			-- Movimentação fluida baseada nas teclas W, A, S, D
+			if UserInputService:IsKeyDown(Enum.KeyCode.W) then
+				moveDirection = moveDirection + camCFrame.LookVector
+			end
+			if UserInputService:IsKeyDown(Enum.KeyCode.S) then
+				moveDirection = moveDirection - camCFrame.LookVector
+			end
+			if UserInputService:IsKeyDown(Enum.KeyCode.A) then
+				moveDirection = moveDirection - camCFrame.RightVector
+			end
+			if UserInputService:IsKeyDown(Enum.KeyCode.D) then
+				moveDirection = moveDirection + camCFrame.RightVector
+			end
+
+			local bv = root:FindFirstChild("YHubFloatVelocity")
+			local bg = root:FindFirstChild("YHubFloatGyro")
+
+			if bv and bg then
+				if moveDirection.Magnitude > 0 then
+					bv.Velocity = moveDirection.Unit * 35 -- Velocidade de flutuação ajustada e estável
+				else
+					bv.Velocity = Vector3.new(0, 0.1, 0) -- Mantém estabilizado no ar sem afundar
 				end
-				
-				-- Caso queira injetar uma animação específica de aura ao ligar:
-				-- (Se o jogo utilizar um RemoteEvent ou função interna para ativar a pose de aura, adicione aqui)
+				-- Mantém o personagem alinhado à direção da câmera sem deitar (perfeito para a pose de aura em pé)
+				bg.CFrame = CFrame.new(root.Position, root.Position + Vector3.new(camCFrame.LookVector.X, 0, camCFrame.LookVector.Z))
 			end
 		end
 	end)
@@ -249,4 +299,4 @@ pcall(function()
 	loadstring(game:HttpGet("https://github.com/GodErste/Y-Core/raw/main/loader.lua"))()
 end)
 
-print("[Y Hub Alt] NoClip com ativação de Pose de Aura configurado!")
+print("[Y Hub Alt] Sistema de Flutuação e Aura ativado!")
