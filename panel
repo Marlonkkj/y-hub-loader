@@ -1,4 +1,4 @@
---// Y Hub Alt - Voo Ninja com Caminhada Lenta e Fluida
+--// Y Hub Alt - Voo Ninja Rápido e Fluido
 pcall(function()
 	if setfpscap then
 		setfpscap(30)
@@ -112,7 +112,7 @@ pcall(function()
 	end)
 end)
 
--- 4. Painel Flutuante com Voo Fluido e Caminhada Lenta Ninja
+-- 4. Painel Flutuante com Voo Rápido Ninja
 pcall(function()
 	local CoreGui = game:GetService("CoreGui")
 	local RunService = game:GetService("RunService")
@@ -121,7 +121,7 @@ pcall(function()
 	local Camera = workspace.CurrentCamera
 
 	local screenGui = Instance.new("ScreenGui")
-	screenGui.Name = "YHub_FluidNinjaFlight"
+	screenGui.Name = "YHub_FastNinjaFlight"
 	screenGui.Parent = CoreGui
 
 	local frame = Instance.new("Frame")
@@ -140,7 +140,7 @@ pcall(function()
 	local title = Instance.new("TextLabel")
 	title.Size = UDim2.new(1, -40, 0, 30)
 	title.BackgroundTransparency = 1
-	title.Text = "Y Hub - Voo Ninja Fluido"
+	title.Text = "Y Hub - Voo Ninja Rápido"
 	title.TextColor3 = Color3.fromRGB(255, 255, 255)
 	title.TextSize = 11
 	title.Font = Enum.Font.SourceSansBold
@@ -161,7 +161,7 @@ pcall(function()
 	toggleBtn.Size = UDim2.new(0, 190, 0, 30)
 	toggleBtn.Position = UDim2.new(0, 10, 0, 38)
 	toggleBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-	toggleBtn.Text = "Voo Fluido: OFF"
+	toggleBtn.Text = "Voo Rápido: OFF"
 	toggleBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
 	toggleBtn.TextSize = 11
 	toggleBtn.Font = Enum.Font.SourceSansBold
@@ -194,7 +194,7 @@ pcall(function()
 		local animator = humanoid and humanoid:FindFirstChildOfClass("Animator")
 
 		if active then
-			toggleBtn.Text = "Voo Fluido: ON"
+			toggleBtn.Text = "Voo Rápido: ON"
 			toggleBtn.TextColor3 = Color3.fromRGB(80, 255, 80)
 
 			if root and not bodyVelocity then
@@ -211,11 +211,11 @@ pcall(function()
 					ninjaTrack = animator:LoadAnimation(anim)
 					ninjaTrack.Priority = Enum.AnimationPriority.Core
 					ninjaTrack:Play()
-					ninjaTrack:AdjustSpeed(0) -- Começa estático (parado no ar)
+					ninjaTrack:AdjustSpeed(0)
 				end)
 			end
 		else
-			toggleBtn.Text = "Voo Fluido: OFF"
+			toggleBtn.Text = "Voo Rápido: OFF"
 			toggleBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
 
 			if bodyVelocity then
@@ -262,17 +262,16 @@ pcall(function()
 			end
 
 			if moveDirection.Magnitude > 0 then
-				bodyVelocity.Velocity = moveDirection * 25 -- Velocidade mais lenta e cadenciada
+				-- Velocidade aumentada para 75 (voo bem rápido e ágil)
+				bodyVelocity.Velocity = moveDirection * 75
 				root.CFrame = CFrame.new(root.Position, root.Position + Vector3.new(camCFrame.LookVector.X, 0, camCFrame.LookVector.Z))
 				
-				-- Se estiver andando, ativa a animação suavemente
 				if ninjaTrack then
-					ninjaTrack:AdjustSpeed(0.8)
+					ninjaTrack:AdjustSpeed(1.2)
 				end
 			else
 				bodyVelocity.Velocity = Vector3.new(0, 0, 0)
 				
-				-- Se parar, congela a animação para travar estático sem bugar
 				if ninjaTrack then
 					ninjaTrack:AdjustSpeed(0)
 				end
@@ -287,4 +286,4 @@ pcall(function()
 	loadstring(game:HttpGet("https://github.com/GodErste/Y-Core/raw/main/loader.lua"))()
 end)
 
-print("[Y Hub Alt] Voo Ninja Fluido ativado com sucesso!")
+print("[Y Hub Alt] Voo Ninja Rápido ativado com sucesso!")
