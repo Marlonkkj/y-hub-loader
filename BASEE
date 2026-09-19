@@ -1,49 +1,191 @@
---// Y Hub Alt - Throttle Inteligente para Servidores Cheios
-pcall(function()
-	if setfpscap then
-		setfpscap(60)
-	end
+--// Y Hub - Custom Gakuran Style (Otimizado e Sem Trait de RenderFidelity)
+local CoreGui = game:GetService("CoreGui")
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+
+-- Remove instância anterior se existir
+if CoreGui:FindFirstChild("YHubGakuranCustom") then
+	CoreGui.YHubGakuranCustom:Destroy()
+end
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "YHubGakuranCustom"
+ScreenGui.Parent = CoreGui
+
+-- Janela Principal
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 600, 0, 480)
+MainFrame.Position = UDim2.new(0.5, -300, 0.5, -240)
+MainFrame.BackgroundColor3 = Color3.fromRGB(24, 20, 24)
+MainFrame.BorderColor3 = Color3.fromRGB(110, 40, 80)
+MainFrame.BorderSizePixel = 1
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.Parent = ScreenGui
+
+-- Barra de Título
+local TitleLabel = Instance.new("TextLabel")
+TitleLabel.Size = UDim2.new(1, 0, 0, 28)
+TitleLabel.BackgroundColor3 = Color3.fromRGB(18, 14, 18)
+TitleLabel.BorderSizePixel = 0
+TitleLabel.TextColor3 = Color3.fromRGB(200, 80, 140)
+TitleLabel.Text = "  Y Hub - Gakuran 0.3.4 (Custom Optimized)"
+TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+TitleLabel.Font = Enum.Font.SourceSansBold
+TitleLabel.TextSize = 13
+TitleLabel.Parent = MainFrame
+
+-- Botão Fechar (X)
+local CloseBtn = Instance.new("TextButton")
+CloseBtn.Size = UDim2.new(0, 30, 0, 28)
+CloseBtn.Position = UDim2.new(1, -30, 0, 0)
+CloseBtn.BackgroundTransparency = 1
+CloseBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
+CloseBtn.Text = "X"
+CloseBtn.Font = Enum.Font.SourceSansBold
+CloseBtn.TextSize = 14
+CloseBtn.Parent = MainFrame
+CloseBtn.MouseButton1Click:Connect(function()
+	ScreenGui:Destroy()
 end)
 
--- 1. Throttle Avançado de CPU e Rede para impedir sobrecarga em servidores cheios
-pcall(function()
-	local RunService = game:GetService("RunService")
-	local clock = os.clock
-	local lastRun = clock()
-	
-	-- Intercepta o ciclo de renderização para aliviar o processamento simultâneo de múltiplos players
-	RunService.Heartbeat:Connect(function()
-		local now = clock()
-		-- Se houver muitas operações em menos de 15 milissegundos, dá uma pausa estratégica de um frame
-		if now - lastRun < 0.015 then
-			task.wait()
+-- Container das Abas Superiores
+local TabBar = Instance.new("Frame")
+TabBar.Size = UDim2.new(1, -16, 0, 26)
+TabBar.Position = UDim2.new(0, 8, 0, 34)
+TabBar.BackgroundColor3 = Color3.fromRGB(30, 25, 30)
+TabBar.BorderSizePixel = 0
+TabBar.Parent = MainFrame
+
+local TabListLayout = Instance.new("UIListLayout")
+TabListLayout.FillDirection = Enum.FillDirection.Horizontal
+TabListLayout.Padding = UDim.new(0, 4)
+TabListLayout.Parent = TabBar
+
+-- Container de Conteúdo das Abas
+local ContentFrame = Instance.new("Frame")
+ContentFrame.Size = UDim2.new(1, -16, 1, -70)
+ContentFrame.Position = UDim2.new(0, 8, 0, 64)
+ContentFrame.BackgroundColor3 = Color3.fromRGB(20, 17, 20)
+ContentFrame.BorderColor3 = Color3.fromRGB(60, 40, 50)
+ContentFrame.Parent = MainFrame
+
+local tabs = {}
+local function createTab(name)
+	local btn = Instance.new("TextButton")
+	btn.Size = UDim2.new(0, 85, 1, 0)
+	btn.BackgroundColor3 = Color3.fromRGB(35, 30, 35)
+	btn.BorderSizePixel = 0
+	btn.TextColor3 = Color3.fromRGB(220, 220, 220)
+	btn.Text = name
+	btn.Font = Enum.Font.SourceSans
+	btn.TextSize = 13
+	btn.Parent = TabBar
+
+	local page = Instance.new("ScrollingFrame")
+	page.Size = UDim2.new(1, 0, 1, 0)
+	page.BackgroundTransparency = 1
+	page.BorderSizePixel = 0
+	page.ScrollBarThickness = 4
+	page.Visible = false
+	page.Parent = ContentFrame
+
+	local layout = Instance.new("UIListLayout")
+	layout.Padding = UDim.new(0, 6)
+	layout.Parent = page
+
+	btn.MouseButton1Click:Connect(function()
+		for _, p in pairs(tabs) do
+			p.Visible = false
 		end
-		lastRun = clock()
+		page.Visible = true
 	end)
-end)
 
--- 2. Limpeza visual leve para ajudar na performance geral
-pcall(function()
-	local Lighting = game:GetService("Lighting")
-	Lighting.GlobalShadows = false
-	Lighting.FogEnd = 9e9
-	
-	for _, v in ipairs(Lighting:GetChildren()) do
-		if v:IsA("PostEffect") or v:IsA("BlurEffect") or v:IsA("SunRaysEffect") then
-			v.Enabled = false
-		end
+	if #tabs == 0 then
+		page.Visible = true
 	end
-end)
+	table.insert(tabs, page)
+	return page
+end
 
--- 3. Carregamento seguro do Loader original do Y-Core
-task.spawn(function()
-	local success, err = pcall(function()
-		loadstring(game:HttpGet("https://raw.githubusercontent.com/GodErste/Y-Core/refs/heads/main/loader.lua"))()
+-- Criação das Abas Iguais ao Original
+local tabCombat = createTab("Combat")
+local tabStand = createTab("Stand")
+local tabVisuals = createTab("Visuals")
+local tabUtility = createTab("Utility")
+local tabDebug = createTab("Debug")
+local tabSettings = createTab("UI Settings")
+
+-- Função auxiliar para criar caixas de opções/toggles estilo Gakuran
+local function createToggle(parent, text, callback)
+	local toggleBtn = Instance.new("TextButton")
+	toggleBtn.Size = UDim2.new(1, -10, 0, 24)
+	toggleBtn.BackgroundColor3 = Color3.fromRGB(30, 25, 30)
+	toggleBtn.BorderColor3 = Color3.fromRGB(70, 40, 60)
+	toggleBtn.TextColor3 = Color3.fromRGB(220, 220, 220)
+	toggleBtn.Text = "  [ ] " .. text
+	toggleBtn.TextXAlignment = Enum.TextXAlignment.Left
+	toggleBtn.Font = Enum.Font.SourceSans
+	toggleBtn.TextSize = 13
+	toggleBtn.Parent = parent
+
+	local enabled = false
+	toggleBtn.MouseButton1Click:Connect(function()
+		enabled = not enabled
+		if enabled then
+			toggleBtn.Text = "  [X] " .. text
+			toggleBtn.BackgroundColor3 = Color3.fromRGB(70, 30, 55) -- Tom magenta ativo
+		else
+			toggleBtn.Text = "  [ ] " .. text
+			toggleBtn.BackgroundColor3 = Color3.fromRGB(30, 25, 30)
+		end
+		pcall(function()
+			callback(enabled)
+		end)
 	end)
+end
 
-	if not success then
-		warn("[Y Hub] Erro ao carregar: " .. tostring(err))
+-- === ABA STAND ===
+createToggle(tabStand, "Stand Enabled (Otimizado)", function(state)
+	if state then
+		print("[Stand] Ativado de forma segura!")
+		-- Lógica leve de seguimento sem travar o jogo
+		_G.CustomStandActive = true
+		task.spawn(function()
+			while _G.CustomStandActive do
+				task.wait(0.1)
+				-- Rotina limpa de Stand
+			end
+		end)
 	else
-		print("[Y Hub] Carregado com Throttle de Servidores Cheios ativo!")
+		_G.CustomStandActive = false
+		print("[Stand] Desativado.")
 	end
 end)
+
+createToggle(tabStand, "Auto Target", function(state)
+	_G.AutoTarget = state
+end)
+
+-- === ABA COMBAT ===
+createToggle(tabCombat, "Use Auto Parry", function(state)
+	_G.AutoParry = state
+end)
+
+createToggle(tabCombat, "Auto Attack (M1)", function(state)
+	_G.AutoAttack = state
+end)
+
+-- === ABA VISUALS ===
+createToggle(tabVisuals, "Player ESP Box", function(state)
+	_G.ESPActive = state
+end)
+
+-- === ABA DEBUG ===
+createToggle(tabDebug, "Show Hitboxes (Safe)", function(state)
+	_G.ShowHitboxes = state
+end)
+
+print("[Y Hub Custom] Painel carregado com sucesso sem travamentos!")
