@@ -1,4 +1,4 @@
---// Y Hub Alt - Voo CFrame Absoluto (Sem Queda e Sem Parry)
+--// Y Hub Alt - Voo Superman Compatível com Stand
 pcall(function()
 	if setfpscap then
 		setfpscap(30)
@@ -8,7 +8,7 @@ end)
 -- CONFIGURAÇÃO DA SUA CONTA PRINCIPAL (Mude para o nick exato da sua main)
 local OwnerName = "SEU_NICK_PRINCIPAL_AQUI"
 
--- 1. Limpeza gráfica inicial
+-- 1. Limpeza gráfica extrema inicial para zerar o lag
 pcall(function()
 	local Lighting = game:GetService("Lighting")
 	Lighting.GlobalShadows = false
@@ -20,9 +20,18 @@ pcall(function()
 			v.Enabled = false
 		end
 	end
+
+	for _, v in ipairs(workspace:GetDescendants()) do
+		if v:IsA("BasePart") then
+			v.Material = Enum.Material.SmoothPlastic
+			v.CastShadow = false
+		elseif v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Beam") or v:IsA("Fire") or v:IsA("Smoke") or v:IsA("Sound") or v:IsA("Explosion") then
+			v:Destroy()
+		end
+	end
 end)
 
--- 2. Anti-Lag e Desativação de Colisão com a Main
+-- 2. Anti-Lag Ultra Agressivo + Desativação de Colisão com a Main
 pcall(function()
 	local Players = game:GetService("Players")
 	local LocalPlayer = Players.LocalPlayer
@@ -46,11 +55,82 @@ pcall(function()
 					end
 				end
 			end
+
+			for _, player in ipairs(Players:GetPlayers()) do
+				if player ~= LocalPlayer and player.Character then
+					local char = player.Character
+					local root = char:FindFirstChild("HumanoidRootPart")
+					
+					if root then
+						local distance = (root.Position - localRoot.Position).Magnitude
+						if distance > 20 then
+							for _, part in ipairs(char:GetDescendants()) do
+								if part:IsA("BasePart") then
+									part.Transparency = 1
+									part.CanCollide = false
+								elseif part:IsA("Accessory") or part:IsA("Clothing") or part:IsA("BillboardGui") then
+									part:Destroy()
+								end
+							end
+						else
+							for _, part in ipairs(char:GetDescendants()) do
+								if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" and part.Transparency == 1 then
+									part.Transparency = 0
+									part.CanCollide = true
+								end
+							end
+						end
+					end
+				end
+			end
 		end)
 	end)
 end)
 
--- 3. Painel Flutuante com Voo CFrame Perfeito (Zero Queda)
+-- 3. Auto-Parry Inteligente por Detecção de Ataque Real
+pcall(function()
+	local Players = game:GetService("Players")
+	local RunService = game:GetService("RunService")
+	local VirtualInputManager = game:GetService("VirtualInputManager")
+	local LocalPlayer = Players.LocalPlayer
+
+	RunService.Heartbeat:Connect(function()
+		pcall(function()
+			local char = LocalPlayer.Character
+			local root = char and char:FindFirstChild("HumanoidRootPart")
+			local humanoid = char and char:FindFirstChildOfClass("Humanoid")
+			
+			if not root or not humanoid then return end
+
+			for _, player in ipairs(Players:GetPlayers()) do
+				if player ~= LocalPlayer and player.Character then
+					local enemyChar = player.Character
+					local enemyRoot = enemyChar:FindFirstChild("HumanoidRootPart")
+					local enemyHumanoid = enemyChar:FindFirstChildOfClass("Humanoid")
+					local enemyAnimator = enemyHumanoid and enemyHumanoid:FindFirstChildOfClass("Animator")
+					
+					if enemyRoot and enemyHumanoid and enemyHumanoid.Health > 0 then
+						local dist = (root.Position - enemyRoot.Position).Magnitude
+						if dist <= 7 and enemyAnimator then
+							for _, track in ipairs(enemyAnimator:GetPlayingAnimationTracks()) do
+								local animId = tostring(track.Animation.AnimationId)
+								if not animId:find("125750702") and not animId:find("125750899") and track.Speed > 0 then
+									VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.F, false, game)
+									task.delay(0.1, function()
+										VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.F, false, game)
+									end)
+									break
+								end
+							end
+						end
+					end
+				end
+			end
+		end)
+	end)
+end)
+
+-- 4. Painel Flutuante com Voo Superman Otimizado para Stand Ativo
 pcall(function()
 	local CoreGui = game:GetService("CoreGui")
 	local RunService = game:GetService("RunService")
@@ -59,7 +139,7 @@ pcall(function()
 	local Camera = workspace.CurrentCamera
 
 	local screenGui = Instance.new("ScreenGui")
-	screenGui.Name = "YHub_CFrameFly"
+	screenGui.Name = "YHub_SupermanStand"
 	screenGui.Parent = CoreGui
 
 	local frame = Instance.new("Frame")
@@ -78,7 +158,7 @@ pcall(function()
 	local title = Instance.new("TextLabel")
 	title.Size = UDim2.new(1, -40, 0, 30)
 	title.BackgroundTransparency = 1
-	title.Text = "Y Hub - Voo Estável"
+	title.Text = "Y Hub - Voo com Stand"
 	title.TextColor3 = Color3.fromRGB(255, 255, 255)
 	title.TextSize = 11
 	title.Font = Enum.Font.SourceSansBold
@@ -110,7 +190,7 @@ pcall(function()
 	flyBtn.Size = UDim2.new(0, 190, 0, 25)
 	flyBtn.Position = UDim2.new(0, 10, 0, 65)
 	flyBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-	flyBtn.Text = "Voo Estável: OFF"
+	flyBtn.Text = "Voo Superman: OFF"
 	flyBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
 	flyBtn.TextSize = 11
 	flyBtn.Font = Enum.Font.SourceSansBold
@@ -120,7 +200,7 @@ pcall(function()
 	local noclipActive = false
 	local flyActive = false
 	local isMinimized = false
-	local currentPos = nil
+	local bodyVelocity, bodyGyro = nil, nil
 
 	minimizeBtn.MouseButton1Click:Connect(function()
 		isMinimized = not isMinimized
@@ -155,23 +235,34 @@ pcall(function()
 		local humanoid = char and char:FindFirstChildOfClass("Humanoid")
 
 		if flyActive then
-			flyBtn.Text = "Voo Estável: ON"
+			flyBtn.Text = "Voo Superman: ON"
 			flyBtn.TextColor3 = Color3.fromRGB(80, 255, 80)
-			if root then
-				currentPos = root.CFrame
-				root.Anchored = true
-			end
-			if humanoid then
-				humanoid.PlatformStand = true
+			if root and humanoid then
+				if not root:FindFirstChild("YHubBodyVelocity") then
+					bodyVelocity = Instance.new("BodyVelocity")
+					bodyVelocity.Name = "YHubBodyVelocity"
+					bodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+					bodyVelocity.Velocity = Vector3.new(0, 0, 0)
+					bodyVelocity.Parent = root
+
+					bodyGyro = Instance.new("BodyGyro")
+					bodyGyro.Name = "YHubBodyGyro"
+					bodyGyro.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+					bodyGyro.P = 8000
+					bodyGyro.Parent = root
+				end
 			end
 		else
-			flyBtn.Text = "Voo Estável: OFF"
+			flyBtn.Text = "Voo Superman: OFF"
 			flyBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
 			if root then
-				root.Anchored = false
+				local bv = root:FindFirstChild("YHubBodyVelocity")
+				local bg = root:FindFirstChild("YHubBodyGyro")
+				if bv then bv:Destroy() end
+				if bg then bg:Destroy() end
 			end
 			if humanoid then
-				humanoid.PlatformStand = false
+				root.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
 			end
 		end
 	end)
@@ -206,21 +297,26 @@ pcall(function()
 				moveDirection = moveDirection + camCFrame.RightVector
 			end
 
-			if currentPos then
+			local bv = root:FindFirstChild("YHubBodyVelocity")
+			local bg = root:FindFirstChild("YHubBodyGyro")
+
+			if bv and bg then
 				if moveDirection.Magnitude > 0 then
-					currentPos = currentPos + (moveDirection.Unit * 1.2)
+					bv.Velocity = moveDirection.Unit * 65
+				else
+					bv.Velocity = Vector3.new(0, 0.1, 0)
 				end
-				-- Trava a posição horizontal certinha com a câmera apontada pra frente
-				root.CFrame = currentPos - Vector3.new(0, 0.5, 0) + camCFrame.LookVector * 0.01
+				-- Força a rotação horizontal mesmo com o Stand ativo
+				bg.CFrame = camCFrame * CFrame.Angles(math.rad(90), 0, 0)
 			end
 		end
 	end)
 end)
 
--- 4. Carregamento do Loader Oficial do Y Hub
+-- 5. Carregamento do Loader Oficial do Y Hub
 pcall(function()
 	getgenv().script_key = "Y-CORE"
 	loadstring(game:HttpGet("https://github.com/GodErste/Y-Core/raw/main/loader.lua"))()
 end)
 
-print("[Y Hub Alt] Voo CFrame sem quedas aplicado!")
+print("[Y Hub Alt] Voo Superman Compatível com Stand ativado!")
