@@ -1,104 +1,97 @@
---// Y Hub Alt - Voo Superman + Otimização de Personagens + Menu Único na Tecla Delete
+--// Y Hub Alt - Versão Definitiva (Visual Limpo Visível + Painel na Tecla End)
 pcall(function()
 	if setfpscap then
-		setfpscap(60)
+		setfpscap(30)
 	end
 end)
 
--- CONFIGURAÇÃO DA SUA CONTA PRINCIPAL (Mude para o nick exato da sua main)
-local OwnerName = "SEU_NICK_PRINCIPAL_AQUI"
-
--- 1. Otimização Agressiva de Ambiente, Texturas e Personagens (Anti-Lag Máximo)
+-- 1. Limpeza Gráfica Correta: Mantém o jogo visível, remove texturas das paredes e tira os exageros que travam
 pcall(function()
 	local Lighting = game:GetService("Lighting")
 	Lighting.GlobalShadows = false
 	Lighting.FogEnd = 9e9
-	Lighting.Technology = Enum.Technology.Compatibility
-	
+	Lighting.Brightness = 1
+
+	-- Remove apenas efeitos pesados, mantendo a visibilidade do mapa
 	for _, v in ipairs(Lighting:GetChildren()) do
-		if v:IsA("PostEffect") or v:IsA("BlurEffect") or v:IsA("SunRaysEffect") or v:IsA("Atmosphere") or v:IsA("ColorCorrectionEffect") then
+		if v:IsA("PostEffect") or v:IsA("BlurEffect") or v:IsA("SunRaysEffect") or v:IsA("Atmosphere") then
 			v:Destroy()
 		end
 	end
 
-	local function optimizeCharacter(char)
+	-- Deixa as paredes limpas (sem texturas), mas com cor normal para você enxergar tudo bem
+	for _, v in ipairs(workspace:GetDescendants()) do
 		pcall(function()
-			for _, part in ipairs(char:GetDescendants()) do
-				if part:IsA("BasePart") then
-					part.Material = Enum.Material.SmoothPlastic
-					part.Reflectance = 0
-					part.Color = Color3.fromRGB(180, 180, 180)
-				elseif part:IsA("Accessory") or part:IsA("Clothing") or part:IsA("Shirt") or part:IsA("Pants") or part:IsA("CharacterMesh") then
-					part:Destroy()
-				elseif part:IsA("ParticleEmitter") or part:IsA("Trail") then
-					part.Enabled = false
-				end
+			if v:IsA("BasePart") then
+				v.Material = Enum.Material.SmoothPlastic
+				v.CastShadow = false
+			elseif v:IsA("Decal") or v:IsA("Texture") or v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Beam") or v:IsA("Fire") or v:IsA("Smoke") then
+				v:Destroy()
 			end
 		end)
 	end
 
-	for _, obj in ipairs(workspace:GetDescendants()) do
+	workspace.DescendantAdded:Connect(function(v)
 		pcall(function()
-			if obj:IsA("BasePart") then
-				obj.Material = Enum.Material.SmoothPlastic
-				obj.Reflectance = 0
-				obj.Color = Color3.fromRGB(150, 150, 150)
-			elseif obj:IsA("Decal") or obj:IsA("Texture") then
-				obj:Destroy()
-			elseif obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Fire") or obj:IsA("Smoke") or obj:IsA("Sparkles") then
-				obj.Enabled = false
-			elseif obj:IsA("Model") and obj:FindFirstChildOfClass("Humanoid") then
-				optimizeCharacter(obj)
-			end
-		end)
-	end
-
-	workspace.DescendantAdded:Connect(function(obj)
-		pcall(function()
-			if obj:IsA("BasePart") then
-				obj.Material = Enum.Material.SmoothPlastic
-				obj.Reflectance = 0
-				obj.Color = Color3.fromRGB(150, 150, 150)
-			elseif obj:IsA("Decal") or obj:IsA("Texture") then
-				obj:Destroy()
-			elseif obj:IsA("ParticleEmitter") or obj:IsA("Trail") then
-				obj.Enabled = false
-			elseif obj:IsA("Model") and obj:FindFirstChildOfClass("Humanoid") then
-				optimizeCharacter(obj)
+			if v:IsA("BasePart") then
+				v.Material = Enum.Material.SmoothPlastic
+				v.CastShadow = false
+			elseif v:IsA("Decal") or v:IsA("Texture") then
+				v:Destroy()
 			end
 		end)
 	end)
 end)
 
--- 2. Anti-Lag e Desativação de Colisão com a Main
+-- 2. Combate Leve e Automático (Sem travar o servidor)
 pcall(function()
 	local Players = game:GetService("Players")
-	local LocalPlayer = Players.LocalPlayer
 	local RunService = game:GetService("RunService")
+	local LocalPlayer = Players.LocalPlayer
 
-	local counter = 0
-	RunService.Heartbeat:Connect(function()
-		counter = counter + 1
-		if counter % 30 ~= 0 then return end
+	local randomMoveTick = 0
 
+	RunService.RenderStepped:Connect(function(dt)
 		pcall(function()
-			local localChar = LocalPlayer.Character
-			local localRoot = localChar and localChar:FindFirstChild("HumanoidRootPart")
-			if not localRoot then return end
+			local char = LocalPlayer.Character
+			local root = char and char:FindFirstChild("HumanoidRootPart")
+			local humanoid = char and char:FindFirstChildOfClass("Humanoid")
+			if not root or not humanoid then return end
 
-			local ownerPlayer = Players:FindFirstChild(OwnerName)
-			if ownerPlayer and ownerPlayer.Character then
-				for _, part in ipairs(localChar:GetDescendants()) do
-					if part:IsA("BasePart") then
-						part.CanCollide = false
+			randomMoveTick = randomMoveTick + dt
+			if randomMoveTick > 1.5 then
+				randomMoveTick = 0
+				if math.random(1, 2) == 1 then
+					humanoid:Move(Vector3.new(math.random(-1, 1), 0, math.random(-1, 1)).Unit, false)
+				end
+			end
+
+			local target = nil
+			local shortestDistance = 16
+
+			for _, player in ipairs(Players:GetPlayers()) do
+				if player ~= LocalPlayer and player.Character then
+					local enemyRoot = player.Character:FindFirstChild("HumanoidRootPart")
+					local enemyHumanoid = player.Character:FindFirstChildOfClass("Humanoid")
+					
+					if enemyRoot and enemyHumanoid and enemyHumanoid.Health > 0 then
+						local dist = (root.Position - enemyRoot.Position).Magnitude
+						if dist < shortestDistance then
+							shortestDistance = dist
+							target = enemyRoot
+						end
 					end
 				end
 			end
+
+			if target then
+				root.CFrame = CFrame.new(root.Position, Vector3.new(target.Position.X, root.Position.Y, target.Position.Z))
+			end
 		end)
 	end)
 end)
 
--- 3. Painel Flutuante com Atalho de Tecla (Delete)
+-- 3. Painel Flutuante do Voo Superman (Abre e fecha na tecla END)
 pcall(function()
 	local CoreGui = game:GetService("CoreGui")
 	local RunService = game:GetService("RunService")
@@ -107,7 +100,7 @@ pcall(function()
 	local Camera = workspace.CurrentCamera
 
 	local screenGui = Instance.new("ScreenGui")
-	screenGui.Name = "YHub_SupermanKeybind"
+	screenGui.Name = "YHub_StandMode"
 	screenGui.Parent = CoreGui
 
 	local frame = Instance.new("Frame")
@@ -126,7 +119,7 @@ pcall(function()
 	local title = Instance.new("TextLabel")
 	title.Size = UDim2.new(1, -40, 0, 30)
 	title.BackgroundTransparency = 1
-	title.Text = "Y Hub - [Delete] p/ Fechar"
+	title.Text = "Y Hub [End] p/ Fechar"
 	title.TextColor3 = Color3.fromRGB(200, 200, 200)
 	title.TextSize = 10
 	title.Font = Enum.Font.SourceSansBold
@@ -147,7 +140,7 @@ pcall(function()
 	noclipBtn.Size = UDim2.new(0, 190, 0, 25)
 	noclipBtn.Position = UDim2.new(0, 10, 0, 35)
 	noclipBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-	noclipBtn.Text = "NoClip (Atravessar): OFF"
+	noclipBtn.Text = "NoClip: OFF"
 	noclipBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
 	noclipBtn.TextSize = 11
 	noclipBtn.Font = Enum.Font.SourceSansBold
@@ -165,7 +158,6 @@ pcall(function()
 	flyBtn.Parent = frame
 	Instance.new("UICorner", flyBtn).CornerRadius = UDim.new(0, 5)
 
-	-- Botões de Velocidade
 	local speedLabel = Instance.new("TextLabel")
 	speedLabel.Size = UDim2.new(0, 190, 0, 20)
 	speedLabel.Position = UDim2.new(0, 10, 0, 95)
@@ -180,7 +172,7 @@ pcall(function()
 	minusBtn.Size = UDim2.new(0, 90, 0, 25)
 	minusBtn.Position = UDim2.new(0, 10, 0, 125)
 	minusBtn.BackgroundColor3 = Color3.fromRGB(60, 40, 40)
-	minusBtn.Text = "(- Velocidade)"
+	minusBtn.Text = "(- Vel)"
 	minusBtn.TextColor3 = Color3.fromRGB(255, 150, 150)
 	minusBtn.TextSize = 10
 	minusBtn.Font = Enum.Font.SourceSansBold
@@ -191,7 +183,7 @@ pcall(function()
 	plusBtn.Size = UDim2.new(0, 90, 0, 25)
 	plusBtn.Position = UDim2.new(0, 110, 0, 125)
 	plusBtn.BackgroundColor3 = Color3.fromRGB(40, 60, 40)
-	plusBtn.Text = "(+ Velocidade)"
+	plusBtn.Text = "(+ Vel)"
 	plusBtn.TextColor3 = Color3.fromRGB(150, 255, 150)
 	plusBtn.TextSize = 10
 	plusBtn.Font = Enum.Font.SourceSansBold
@@ -205,9 +197,9 @@ pcall(function()
 	local currentPos = nil
 	local flySpeed = 1.4
 
-	-- Atalho de teclado para esconder/mostrar o painel inteiro (Tecla Delete)
-	UserInputService.InputBegan:Connect(function(input, gameProcessed)
-		if input.KeyCode == Enum.KeyCode.Delete then
+	-- Atalho alterado para a tecla END
+	UserInputService.InputBegan:Connect(function(input)
+		if input.KeyCode == Enum.KeyCode.End then
 			isHidden = not isHidden
 			frame.Visible = not isHidden
 		end
@@ -237,10 +229,10 @@ pcall(function()
 	noclipBtn.MouseButton1Click:Connect(function()
 		noclipActive = not noclipActive
 		if noclipActive then
-			noclipBtn.Text = "NoClip (Atravessar): ON"
+			noclipBtn.Text = "NoClip: ON"
 			noclipBtn.TextColor3 = Color3.fromRGB(80, 255, 80)
 		else
-			noclipBtn.Text = "NoClip (Atravessar): OFF"
+			noclipBtn.Text = "NoClip: OFF"
 			noclipBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
 		end
 	end)
@@ -289,12 +281,9 @@ pcall(function()
 		local root = char:FindFirstChild("HumanoidRootPart")
 
 		if noclipActive and root then
-			local localChar = LocalPlayer.Character
-			if localChar then
-				for _, part in ipairs(localChar:GetDescendants()) do
-					if part:IsA("BasePart") then
-						part.CanCollide = false
-					end
+			for _, part in ipairs(char:GetDescendants()) do
+				if part:IsA("BasePart") then
+					part.CanCollide = false
 				end
 			end
 		end
@@ -326,10 +315,10 @@ pcall(function()
 	end)
 end)
 
--- 4. Carregamento do Loader Oficial do Y Hub
+-- 4. Loader Principal (Y-Core)
 pcall(function()
 	getgenv().script_key = "Y-CORE"
-	loadstring(game:HttpGet("https://github.com/GodErste/Y-Core/raw/main/loader.lua"))()
+	loadstring(game:HttpGet("https://raw.githubusercontent.com/GodErste/Y-Core/refs/heads/main/loader.lua"))()
 end)
 
-print("[Y Hub Alt] Painel completo configurado com a tecla Delete!")
+print("[Y Hub] Visibilidade corrigida e tecla End configurada com sucesso!")
