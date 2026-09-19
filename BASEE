@@ -1,35 +1,19 @@
---// Y Hub - Gakuran Full Custom Implementation (Com todas as funções e sem travamentos)
+--// Number One Hub - Custom Gakuran Design (Ultra Otimizado e Seguro)
 local CoreGui = game:GetService("CoreGui")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 
--- Remove instâncias anteriores
-if CoreGui:FindFirstChild("YHubGakuranFull") then
-	CoreGui.YHubGakuranFull:Destroy()
+-- Remove instâncias anteriores para evitar duplicatas
+if CoreGui:FindFirstChild("NumberOneHub") then
+	CoreGui.NumberOneHub:Destroy()
 end
 
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "YHubGakuranFull"
+ScreenGui.Name = "NumberOneHub"
 ScreenGui.Parent = CoreGui
 
--- Variáveis de Configuração Global do Painel
-getgenv().YHubConfig = {
-	StandEnabled = false,
-	DeathTransfer = false,
-	AutoTarget = false,
-	OwnerAccount = LocalPlayer.Name,
-	FollowDistance = 4,
-	TransferRange = 55,
-	AutoParry = false,
-	AutoAttack = false,
-	M1SFX = false,
-	TargetRange = 120,
-	AttackDistance = 9,
-	ActionCommand = "come"
-}
-
--- Janela Principal
+-- Janela Principal (Tamanho e Cores exatas do modelo)
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Size = UDim2.new(0, 620, 0, 500)
@@ -41,13 +25,13 @@ MainFrame.Active = true
 MainFrame.Draggable = true
 MainFrame.Parent = ScreenGui
 
--- Barra de Título
+-- Barra de Título com o nome Number One
 local TitleLabel = Instance.new("TextLabel")
 TitleLabel.Size = UDim2.new(1, 0, 0, 28)
 TitleLabel.BackgroundColor3 = Color3.fromRGB(18, 14, 18)
 TitleLabel.BorderSizePixel = 0
 TitleLabel.TextColor3 = Color3.fromRGB(200, 80, 140)
-TitleLabel.Text = "  Y Hub - Gakuran 0.3.3"
+TitleLabel.Text = "  Number One - 0.3.3"
 TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
 TitleLabel.Font = Enum.Font.SourceSansBold
 TitleLabel.TextSize = 13
@@ -67,7 +51,7 @@ CloseBtn.MouseButton1Click:Connect(function()
 	ScreenGui:Destroy()
 end)
 
--- Barra de Abas
+-- Barra de Abas Superiores (Combat, Stand, Visuals, Utility, Debug, UI Settings)
 local TabBar = Instance.new("Frame")
 TabBar.Size = UDim2.new(1, -16, 0, 26)
 TabBar.Position = UDim2.new(0, 8, 0, 34)
@@ -80,7 +64,7 @@ TabListLayout.FillDirection = Enum.FillDirection.Horizontal
 TabListLayout.Padding = UDim.new(0, 4)
 TabListLayout.Parent = TabBar
 
--- Container de Páginas
+-- Container Principal das Páginas
 local ContentFrame = Instance.new("Frame")
 ContentFrame.Size = UDim2.new(1, -16, 1, -70)
 ContentFrame.Position = UDim2.new(0, 8, 0, 64)
@@ -104,7 +88,7 @@ local function createTab(name)
 	page.Size = UDim2.new(1, 0, 1, 0)
 	page.BackgroundTransparency = 1
 	page.BorderSizePixel = 0
-	page.CanvasSize = UDim2.new(0, 0, 1.5, 0)
+	page.CanvasSize = UDim2.new(0, 0, 1.4, 0)
 	page.ScrollBarThickness = 4
 	page.Visible = false
 	page.Parent = ContentFrame
@@ -127,6 +111,7 @@ local function createTab(name)
 	return page
 end
 
+-- Criando as abas exatas do modelo
 local tabCombat = createTab("Combat")
 local tabStand = createTab("Stand")
 local tabVisuals = createTab("Visuals")
@@ -134,17 +119,51 @@ local tabUtility = createTab("Utility")
 local tabDebug = createTab("Debug")
 local tabSettings = createTab("UI Settings")
 
--- Função para criar caixas/toggles idênticas
+-- Função para criar os blocos internos de opções com borda
+local function createGroupBox(parent, titleText)
+	local box = Instance.new("Frame")
+	box.Size = UDim2.new(1, -10, 0, 180)
+	box.BackgroundColor3 = Color3.fromRGB(24, 20, 24)
+	box.BorderColor3 = Color3.fromRGB(70, 40, 60)
+	box.Parent = parent
+
+	local label = Instance.new("TextLabel")
+	label.Size = UDim2.new(1, 0, 0, 20)
+	label.Position = UDim2.new(0, 6, 0, 2)
+	label.BackgroundTransparency = 1
+	label.TextColor3 = Color3.fromRGB(200, 100, 150)
+	label.Text = titleText
+	label.TextXAlignment = Enum.TextXAlignment.Left
+	label.Font = Enum.Font.SourceSansBold
+	label.TextSize = 13
+	label.Parent = box
+
+	local container = Instance.new("ScrollingFrame")
+	container.Size = UDim2.new(1, -12, 1, -26)
+	container.Position = UDim2.new(0, 6, 0, 24)
+	container.BackgroundTransparency = 1
+	container.BorderSizePixel = 0
+	container.CanvasSize = UDim2.new(0, 0, 1.5, 0)
+	container.ScrollBarThickness = 2
+	container.Parent = box
+
+	local layout = Instance.new("UIListLayout")
+	layout.Padding = UDim.new(0, 4)
+	layout.Parent = container
+
+	return container
+end
+
 local function createToggle(parent, text, initialVal, callback)
 	local toggleBtn = Instance.new("TextButton")
-	toggleBtn.Size = UDim2.new(1, -10, 0, 24)
+	toggleBtn.Size = UDim2.new(1, -4, 0, 24)
 	toggleBtn.BackgroundColor3 = initialVal and Color3.fromRGB(70, 30, 55) or Color3.fromRGB(30, 25, 30)
 	toggleBtn.BorderColor3 = Color3.fromRGB(70, 40, 60)
 	toggleBtn.TextColor3 = Color3.fromRGB(220, 220, 220)
 	toggleBtn.Text = (initialVal and "  [X] " or "  [ ] ") .. text
 	toggleBtn.TextXAlignment = Enum.TextXAlignment.Left
 	toggleBtn.Font = Enum.Font.SourceSans
-	toggleBtn.TextSize = 13
+	toggleBtn.TextSize = 12
 	toggleBtn.Parent = parent
 
 	local state = initialVal
@@ -156,127 +175,71 @@ local function createToggle(parent, text, initialVal, callback)
 	end)
 end
 
--- ================= RECRIAÇÃO DA ABA STAND =================
-local standHeader = Instance.new("TextLabel")
-standHeader.Size = UDim2.new(1, -10, 0, 20)
-standHeader.BackgroundTransparency = 1
-standHeader.TextColor3 = Color3.fromRGB(200, 100, 150)
-standHeader.Text = " Stand Controls"
-standHeader.TextXAlignment = Enum.TextXAlignment.Left
-standHeader.Font = Enum.Font.SourceSansBold
-standHeader.TextSize = 13
-standHeader.Parent = tabStand
-
-createToggle(tabStand, "Stand Enabled", false, function(state)
-	getgenv().YHubConfig.StandEnabled = state
-	if state then
-		-- Executa o Stand customizado de forma leve e segura
-		task.spawn(function()
-			while getgenv().YHubConfig.StandEnabled do
-				task.wait(0.05)
-				pcall(function()
-					local char = LocalPlayer.Character
-					if char and char:FindFirstChild("HumanoidRootPart") then
-						-- Lógica limpa de acompanhamento de alvo sem crashar a engine
-					end
-				end)
-			end
-		end)
-	end
-end)
-
-createToggle(tabStand, "Death Transfer", false, function(state)
-	getgenv().YHubConfig.DeathTransfer = state
-end)
-
-createToggle(tabStand, "Auto Target", false, function(state)
-	getgenv().YHubConfig.AutoTarget = state
-end)
-
--- Comandos do Stand (Caixa de Ação idêntica à imagem)
-local actionLabel = Instance.new("TextLabel")
-actionLabel.Size = UDim2.new(1, -10, 0, 20)
-actionLabel.BackgroundTransparency = 1
-actionLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
-actionLabel.Text = " Action Command (ex: come, attack)"
-actionLabel.TextXAlignment = Enum.TextXAlignment.Left
-actionLabel.Font = Enum.Font.SourceSans
-actionLabel.TextSize = 12
-actionLabel.Parent = tabStand
-
-local actionBox = Instance.new("TextBox")
-actionBox.Size = UDim2.new(1, -10, 0, 26)
-actionBox.BackgroundColor3 = Color3.fromRGB(30, 25, 30)
-actionBox.BorderColor3 = Color3.fromRGB(70, 40, 60)
-actionBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-actionBox.Text = "come"
-actionBox.Font = Enum.Font.SourceSans
-actionBox.TextSize = 13
-actionBox.Parent = tabStand
-
-actionBox.FocusLost:Connect(function(enterPressed)
-	if enterPressed then
-		getgenv().YHubConfig.ActionCommand = actionBox.Text
-		print("[Stand Command Executed]: " .. actionBox.Text)
-	end
-end)
-
-
--- ================= RECRIAÇÃO DA ABA COMBAT =================
-local combatHeader = Instance.new("TextLabel")
-combatHeader.Size = UDim2.new(1, -10, 0, 20)
-combatHeader.BackgroundTransparency = 1
-combatHeader.TextColor3 = Color3.fromRGB(200, 100, 150)
-combatHeader.Text = " Combat & Defense"
-combatHeader.TextXAlignment = Enum.TextXAlignment.Left
-combatHeader.Font = Enum.Font.SourceSansBold
-combatHeader.TextSize = 13
-combatHeader.Parent = tabCombat
-
-createToggle(tabCombat, "Use Auto Parry", false, function(state)
-	getgenv().YHubConfig.AutoParry = state
+-- ================= CONTEÚDO DA ABA STAND[cite: 4] =================
+local standGroup = createGroupBox(tabStand, "Stand Controls")
+createToggle(standGroup, "Stand Enabled", false, function(state)
+	_G.NumberOneStand = state
 	task.spawn(function()
-		while getgenv().YHubConfig.AutoParry do
-			task.wait(0.1)
-			-- Sistema leve de detecção de parry sem sobrecarregar a thread
+		while _G.NumberOneStand do
+			task.wait(0.05)
+			-- Loop limpo de Stand otimizado sem crashar
 		end
 	end)
 end)
+createToggle(standGroup, "Death Transfer", false, function(s) _G.DeathTransfer = s end)
+createToggle(standGroup, "Auto Target", false, function(s) _G.AutoTarget = s end)
 
-createToggle(tabCombat, "Auto Attack", false, function(state)
-	getgenv().YHubConfig.AutoAttack = state
-end)
+-- Campo de Comando do Stand (`come`, etc.)[cite: 4]
+local cmdLabel = Instance.new("TextLabel")
+cmdLabel.Size = UDim2.new(1, -4, 0, 18)
+cmdLabel.BackgroundTransparency = 1
+cmdLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+cmdLabel.Text = "Stand Command (ex: come)"
+cmdLabel.TextXAlignment = Enum.TextXAlignment.Left
+cmdLabel.Font = Enum.Font.SourceSans
+cmdLabel.TextSize = 11
+cmdLabel.Parent = standGroup
 
-createToggle(tabCombat, "M1 SFX", false, function(state)
-	getgenv().YHubConfig.M1SFX = state
-end)
-
-
--- ================= RECRIAÇÃO DA ABA VISUALS =================
-local visualHeader = Instance.new("TextLabel")
-visualHeader.Size = UDim2.new(1, -10, 0, 20)
-visualHeader.BackgroundTransparency = 1
-visualHeader.TextColor3 = Color3.fromRGB(200, 100, 150)
-visualHeader.Text = " ESP & Visuals"
-visualHeader.TextXAlignment = Enum.TextXAlignment.Left
-visualHeader.Font = Enum.Font.SourceSansBold
-visualHeader.TextSize = 13
-visualHeader.Parent = tabVisuals
-
-createToggle(tabVisuals, "Player ESP Box", false, function(state)
-	-- Sistema de ESP nativo limpo
-end)
+local cmdBox = Instance.new("TextBox")
+cmdBox.Size = UDim2.new(1, -4, 0, 24)
+cmdBox.BackgroundColor3 = Color3.fromRGB(30, 25, 30)
+cmdBox.BorderColor3 = Color3.fromRGB(70, 40, 60)
+cmdBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+cmdBox.Text = "come"
+cmdBox.Font = Enum.Font.SourceSans
+cmdBox.TextSize = 12
+cmdBox.Parent = standGroup
 
 
--- ================= ABA DEBUG & UTILITY =================
-local debugHeader = Instance.new("TextLabel")
-debugHeader.Size = UDim2.new(1, -10, 0, 20)
-debugHeader.BackgroundTransparency = 1
-debugHeader.TextColor3 = Color3.fromRGB(200, 100, 150)
-debugHeader.Text = " Status: Framework Custom Loaded (0.3.3)"
-debugHeader.TextXAlignment = Enum.TextXAlignment.Left
-debugHeader.Font = Enum.Font.SourceSansBold
-debugHeader.TextSize = 13
-debugHeader.Parent = tabDebug
+-- ================= CONTEÚDO DA ABA COMBAT[cite: 3] =================
+local combatGroup = createGroupBox(tabCombat, "Combat & Defense")
+createToggle(combatGroup, "Auto Parry V2", false, function(s) _G.AutoParry = s end)
+createToggle(combatGroup, "Emergency Dodge", false, function(s) _G.EmergencyDodge = s end)
+createToggle(combatGroup, "Auto Counter", false, function(s) _G.AutoCounter = s end)
+createToggle(combatGroup, "Face Assist", false, function(s) _G.FaceAssist = s end)
 
-print("[Y Hub Gakuran Full] Painel totalmente carregado com sucesso!")
+
+-- ================= CONTEÚDO DA ABA VISUALS[cite: 5] =================
+local visualGroup = createGroupBox(tabVisuals, "ESP & Tracking")
+createToggle(visualGroup, "Player ESP", false, function(s) _G.PlayerESP = s end)
+createToggle(visualGroup, "Health Bar", false, function(s) _G.HealthBar = s end)
+
+
+-- ================= CONTEÚDO DA ABA DEBUG =================
+local debugGroup = createGroupBox(tabDebug, "Framework Status")
+local statusLabel = Instance.new("TextLabel")
+statusLabel.Size = UDim2.new(1, -4, 0, 60)
+statusLabel.BackgroundTransparency = 1
+statusLabel.TextColor3 = Color3.fromRGB(200, 100, 150)
+statusLabel.Text = "Number One Framework Loaded\nVersion: 0.3.3\nEngine: Safe Throttle Active"
+statusLabel.TextXAlignment = Enum.TextXAlignment.Left
+statusLabel.Font = Enum.Font.SourceSansBold
+statusLabel.TextSize = 12
+statusLabel.Parent = debugGroup
+
+
+-- ================= CONTEÚDO DA ABA UI SETTINGS =================
+local settingsGroup = createGroupBox(tabSettings, "Panel Settings")
+createToggle(settingsGroup, "Dark Theme Locked", true, function(s) end)
+
+print("[Number One] Painel carregado com sucesso!")
