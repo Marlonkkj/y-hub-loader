@@ -1,29 +1,21 @@
---// Y Hub Alt - Versão Blindada Anti-Erro de RenderFidelity
+--// Y Hub Alt - Bloqueador Definitivo de Texturas 8K e RenderFidelity
 pcall(function()
 	if setfpscap then
 		setfpscap(60)
 	end
 end)
 
--- 1. Interceptador de Erros de Propriedades de Runtime (Bloqueia o spam do console e o travamento)
+-- 1. Destrói o MaterialService e pacotes pesados externos que quebram o jogo
 pcall(function()
-	local mt = getrawmetatable(game)
-	if mt and type(mt) == "table" then
-		setreadonly(mt, false)
-		local oldIndex = mt.__newindex
-		
-		mt.__newindex = newcclosure(function(self, prop, value)
-			if prop == "RenderFidelity" and not checkcaller() then
-				return -- Ignora e bloqueia alterações de RenderFidelity externas que travam o jogo
-			end
-			return oldIndex(self, prop, value)
-		end)
-		
-		setreadonly(mt, true)
+	local MaterialService = game:GetService("MaterialService")
+	if MaterialService then
+		for _, v in ipairs(MaterialService:GetChildren()) do
+			v:Destroy()
+		end
 	end
 end)
 
--- 2. Limpeza gráfica segura do mapa
+-- 2. Limpeza profunda do workspace para apagar qualquer resquício de textura pesada
 pcall(function()
 	local Lighting = game:GetService("Lighting")
 	Lighting.GlobalShadows = false
@@ -42,14 +34,14 @@ pcall(function()
 				v.Material = Enum.Material.SmoothPlastic
 				v.CastShadow = false
 				v.Reflectance = 0
-			elseif v:IsA("Decal") or v:IsA("Texture") or v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Beam") then
+			elseif v:IsA("Decal") or v:IsA("Texture") or v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Beam") or v:IsA("Fire") or v:IsA("Smoke") then
 				v:Destroy()
 			end
 		end)
 	end
 end)
 
--- 3. Throttle global para suavizar o processamento do painel
+-- 3. Throttle global para suavizar o fluxo do painel
 pcall(function()
 	local RunService = game:GetService("RunService")
 	local lastExecution = tick()
@@ -62,15 +54,15 @@ pcall(function()
 	end)
 end)
 
--- 4. Carregamento seguro do Loader oficial do Y-Core
+-- 4. Carregamento do Loader oficial do Y-Core
 task.spawn(function()
 	local success, err = pcall(function()
 		loadstring(game:HttpGet("https://raw.githubusercontent.com/GodErste/Y-Core/refs/heads/main/loader.lua"))()
 	end)
 
 	if not success then
-		warn("[Y Hub] Erro ao carregar: " .. tostring(err))
+		warn("[Y Hub] Erro ao carregar: " + tostring(err))
 	else
-		print("[Y Hub] Painel carregado com Bloqueio de RenderFidelity ativo!")
+		print("[Y Hub] Carregado com bloqueio de MaterialService 8K!")
 	end
 end)
