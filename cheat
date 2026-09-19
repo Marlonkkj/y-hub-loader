@@ -1,11 +1,11 @@
---// Y Hub Alt - Código Completo Ultra-Agressivo (Anti-Lag Máximo + Loader + Otimização de Servidor Cheio)
+--// Y Hub Alt - Modo Ultra Fluido (Zero Gargalo de Servidor Cheio + Loader)
 pcall(function()
 	if setfpscap then
-		setfpscap(30) -- Trava o FPS para aliviar o processador
+		setfpscap(30)
 	end
 end)
 
--- 1. Limpeza gráfica otimizada (Mantém o mapa visível e limpa apenas texturas/efeitos pesados)
+-- 1. Limpeza Gráfica Extrema: Deixa o mapa com textura lisa e limpa, sem pesar a placa de vídeo
 pcall(function()
 	local Lighting = game:GetService("Lighting")
 	Lighting.GlobalShadows = false
@@ -27,60 +27,13 @@ pcall(function()
 			elseif v:IsA("Decal") or v:IsA("Texture") or v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Beam") or v:IsA("Fire") or v:IsA("Smoke") or v:IsA("Sparkles") or v:IsA("Explosion") then
 				v:Destroy()
 			elseif v:IsA("Sound") then
-				v:Destroy() -- Remove poluição sonora que consome memória
+				v:Destroy()
 			end
 		end)
 	end
 end)
 
--- 2. Anti-Lag Agressivo Otimizado (Evita travamentos drásticos no !attack)
-pcall(function()
-	local Players = game:GetService("Players")
-	local LocalPlayer = Players.LocalPlayer
-	local RunService = game:GetService("RunService")
-
-	local counter = 0
-	RunService.Heartbeat:Connect(function()
-		counter = counter + 1
-		-- Roda a cada 30 frames para aliviar totalmente a CPU durante o combate lotado
-		if counter % 30 ~= 0 then return end
-
-		pcall(function()
-			local localRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-			if not localRoot then return end
-
-			for _, player in ipairs(Players:GetPlayers()) do
-				if player ~= LocalPlayer and player.Character then
-					local char = player.Character
-					local root = char:FindFirstChild("HumanoidRootPart")
-					
-					if root then
-						local distance = (root.Position - localRoot.Position).Magnitude
-						-- Se o player estiver a mais de 20 studs, oculta e desliga colisão sem destruir elementos críticos
-						if distance > 20 then
-							for _, part in ipairs(char:GetDescendants()) do
-								if part:IsA("BasePart") then
-									part.Transparency = 1
-									part.CanCollide = false
-								end
-							end
-						else
-							-- Restaura quando se aproxima para o ataque
-							for _, part in ipairs(char:GetDescendants()) do
-								if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" and part.Transparency == 1 then
-									part.Transparency = 0
-									part.CanCollide = true
-								end
-							end
-						end
-					end
-				end
-			end
-		end)
-	end)
-end)
-
--- 3. Coletor de lixo hiper-agressivo (Limpa a memória RAM a cada 2 segundos)
+-- 2. Coletor de lixo hiper-agressivo para limpar a memória RAM a cada 2 segundos e evitar vazamento
 pcall(function()
 	collectgarbage("setpause", 100)
 	collectgarbage("setstepmul", 300)
@@ -92,13 +45,15 @@ pcall(function()
 	end)
 end)
 
--- 4. Carregamento seguro do loader oficial atualizado
-local success, err = pcall(function()
-	loadstring(game:HttpGet("https://raw.githubusercontent.com/GodErste/Y-Core/refs/heads/main/loader.lua"))()
-end)
+-- 3. Carregamento Seguro e Isolado do Loader (Evita congelamento por falha de thread)
+task.spawn(function()
+	local success, err = pcall(function()
+		loadstring(game:HttpGet("https://raw.githubusercontent.com/GodErste/Y-Core/refs/heads/main/loader.lua"))()
+	end)
 
-if not success then
-	warn("[Y Hub Alt] Falha ao carregar: " .. tostring(err))
-else
-	print("[Y Hub Alt] Injetado com sucesso no modo Otimizado para Servidor Cheio!")
-end
+	if not success then
+		warn("[Y Hub Alt] Erro no Loader: " .. tostring(err))
+	else
+		print("[Y Hub Alt] Carregado sem gargalos!")
+	end
+end)
