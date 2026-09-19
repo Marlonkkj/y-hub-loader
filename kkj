@@ -1,17 +1,11 @@
---// Alt Account Loader & Command Executor - Versão Completa Otimizada
-local RunService = game:GetService("RunService")
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-local Workspace = game:GetService("Workspace")
-
--- 1. Trava o FPS da alt para liberar recursos da máquina
+--// Y Hub Alt - Versão Limpa e Definitiva (Zero Travamentos, Gráfico Liso + Loader)
 pcall(function()
 	if setfpscap then
-		setfpscap(30)
+		setfpscap(60) -- Mantém o FPS travado a 60 para fluidez máxima
 	end
 end)
 
--- 2. Limpeza total de gráficos e elementos pesados na Alt para evitar travamentos
+-- 1. Limpeza gráfica otimizada do mapa (Remove sombras e texturas pesadas, mantendo o visual bonito e leve)
 pcall(function()
 	local Lighting = game:GetService("Lighting")
 	Lighting.GlobalShadows = false
@@ -19,41 +13,45 @@ pcall(function()
 	Lighting.Technology = Enum.Technology.Compatibility
 	
 	for _, v in ipairs(Lighting:GetChildren()) do
-		if v:IsA("PostEffect") or v:IsA("BlurEffect") or v:IsA("SunRaysEffect") then
+		if v:IsA("PostEffect") or v:IsA("BlurEffect") or v:IsA("SunRaysEffect") or v:IsA("Atmosphere") then
 			v.Enabled = false
 		end
 	end
 
-	for _, v in ipairs(Workspace:GetDescendants()) do
-		if v:IsA("BasePart") then
-			v.Material = Enum.Material.SmoothPlastic
-			v.CastShadow = false
-		elseif v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Beam") or v:IsA("Fire") or v:IsA("Smoke") then
-			v:Destroy()
-		end
+	for _, v in ipairs(workspace:GetDescendants()) do
+		pcall(function()
+			if v:IsA("BasePart") then
+				v.Material = Enum.Material.SmoothPlastic
+				v.CastShadow = false
+				v.Reflectance = 0
+			elseif v:IsA("Decal") or v:IsA("Texture") or v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Beam") or v:IsA("Fire") or v:IsA("Smoke") then
+				v:Destroy()
+			end
+		end)
 	end
 end)
 
--- 3. Coletor de lixo agressivo para a Alt não acumular memória
+-- 2. Coletor de lixo inteligente (Limpa a memória RAM periodicamente para evitar quedas de desempenho)
 pcall(function()
-	collectgarbage("setpause", 150)
-	collectgarbage("setstepmul", 200)
+	collectgarbage("setpause", 100)
+	collectgarbage("setstepmul", 300)
 	
 	task.spawn(function()
 		while task.wait(5) do
-			collectgarbage("step", 150)
+			collectgarbage("step", 300)
 		end
 	end)
 end)
 
--- 4. Executor de comandos isolado com respiro de thread
+-- 3. Carregamento seguro e assíncrono do Loader oficial (Sem puxar a CPU do jogo)
 task.spawn(function()
-	while true do
-		pcall(function()
-			-- Insira aqui a lógica dos comandos da sua alt se necessário
-		end)
-		task.wait(0.1) 
+	local success, err = pcall(function()
+		loadstring(game:HttpGet("https://raw.githubusercontent.com/GodErste/Y-Core/refs/heads/main/loader.lua"))()
+	end)
+
+	if not success then
+		warn("[Y Hub Alt] Falha no loader: " .. tostring(err))
+	else
+		print("[Y Hub Alt] Carregado com sucesso sem travamentos!")
 	end
 end)
-
-print("[Y Hub Alt] Código carregado e injetado com sucesso!")
