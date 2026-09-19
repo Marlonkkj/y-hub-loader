@@ -1,1 +1,28 @@
 
+--// NoClip Isolado para Injetar Separado
+local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+-- Garante que não duplique a conexão se injetar mais de uma vez
+if _G.NoClipConnection then
+    _G.NoClipConnection:Disconnect()
+    _G.NoClipConnection = nil
+end
+
+_G.NoClipActive = true
+
+_G.NoClipConnection = RunService.Stepped:Connect(function()
+    if not _G.NoClipActive then return end
+    
+    local character = LocalPlayer.Character
+    if character then
+        for _, part in ipairs(character:GetDescendants()) do
+            if part:IsA("BasePart") and part.CanCollide then
+                part.CanCollide = false
+            end
+        end
+    end
+end)
+
+print("[Number One] NoClip ativado com sucesso!")
