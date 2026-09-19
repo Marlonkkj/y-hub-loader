@@ -1,4 +1,4 @@
---// Y Hub Alt - Flutuação e Aura Replicada para o Servidor
+--// Y Hub Alt - Voo Natural Estático + Pose de Aura Forçada e Visível
 pcall(function()
 	if setfpscap then
 		setfpscap(30)
@@ -130,7 +130,7 @@ pcall(function()
 	end)
 end)
 
--- 4. Painel Flutuante Replicado (Visível para todos)
+-- 4. Painel Flutuante com Voo Natural, Parada Estática e Pose de Aura Ativa
 pcall(function()
 	local CoreGui = game:GetService("CoreGui")
 	local RunService = game:GetService("RunService")
@@ -139,7 +139,7 @@ pcall(function()
 	local Camera = workspace.CurrentCamera
 
 	local screenGui = Instance.new("ScreenGui")
-	screenGui.Name = "YHub_ReplicatedFloat"
+	screenGui.Name = "YHub_AuraFlight"
 	screenGui.Parent = CoreGui
 
 	local frame = Instance.new("Frame")
@@ -158,7 +158,7 @@ pcall(function()
 	local title = Instance.new("TextLabel")
 	title.Size = UDim2.new(1, -40, 0, 30)
 	title.BackgroundTransparency = 1
-	title.Text = "Y Hub - Voo Público"
+	title.Text = "Y Hub - Voo com Aura"
 	title.TextColor3 = Color3.fromRGB(255, 255, 255)
 	title.TextSize = 11
 	title.Font = Enum.Font.SourceSansBold
@@ -179,7 +179,7 @@ pcall(function()
 	toggleBtn.Size = UDim2.new(0, 190, 0, 30)
 	toggleBtn.Position = UDim2.new(0, 10, 0, 38)
 	toggleBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-	toggleBtn.Text = "Voo Visível: OFF"
+	toggleBtn.Text = "Voo com Aura: OFF"
 	toggleBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
 	toggleBtn.TextSize = 11
 	toggleBtn.Font = Enum.Font.SourceSansBold
@@ -188,6 +188,7 @@ pcall(function()
 
 	local active = false
 	local isMinimized = false
+	local auraTrack = nil
 
 	minimizeBtn.MouseButton1Click:Connect(function()
 		isMinimized = not isMinimized
@@ -204,18 +205,37 @@ pcall(function()
 
 	toggleBtn.MouseButton1Click:Connect(function()
 		active = not active
+		local char = LocalPlayer.Character
+		local humanoid = char and char:FindFirstChildOfClass("Humanoid")
+		local animator = humanoid and humanoid:FindFirstChildOfClass("Animator")
+
 		if active then
-			toggleBtn.Text = "Voo Visível: ON"
+			toggleBtn.Text = "Voo com Aura: ON"
 			toggleBtn.TextColor3 = Color3.fromRGB(80, 255, 80)
+
+			-- Tenta carregar e executar a animação de pose/aura do jogo
+			if animator then
+				pcall(function()
+					local anim = Instance.new("Animation")
+					-- ID padrão comum de pose/aura em jogos baseados nesse estilo (pode ajustar se necessário)
+					anim.AnimationId = "rbxassetid://125750702" 
+					auraTrack = animator:LoadAnimation(anim)
+					auraTrack.Priority = Enum.AnimationPriority.Action4
+					auraTrack:Play()
+					auraTrack:AdjustSpeed(1)
+				end)
+			end
 		else
-			toggleBtn.Text = "Voo Visível: OFF"
+			toggleBtn.Text = "Voo com Aura: OFF"
 			toggleBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
-			local char = LocalPlayer.Character
-			if char then
-				local humanoid = char:FindFirstChildOfClass("Humanoid")
-				if humanoid then
-					humanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall, true)
-				end
+
+			-- Para a animação de aura ao desligar
+			if auraTrack then
+				pcall(function()
+					auraTrack:Stop()
+					auraTrack:Destroy()
+				end)
+				auraTrack = nil
 			end
 		end
 	end)
@@ -224,18 +244,14 @@ pcall(function()
 		local char = LocalPlayer.Character
 		if not char then return end
 		local root = char:FindFirstChild("HumanoidRootPart")
-		local humanoid = char:FindFirstChildOfClass("Humanoid")
 
-		if active and root and humanoid then
-			-- Desativa a colisão para atravessar paredes
+		if active and root then
+			-- Desativa colisão (NoClip automático)
 			for _, part in ipairs(char:GetDescendants()) do
 				if part:IsA("BasePart") then
 					part.CanCollide = false
 				end
 			end
-
-			-- Impede que o humanoid entre em estado de queda livre para o servidor replicar a posição suave
-			humanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall, false)
 
 			local camCFrame = Camera.CFrame
 			local moveDirection = Vector3.new(0, 0, 0)
@@ -253,11 +269,11 @@ pcall(function()
 				moveDirection = moveDirection + camCFrame.RightVector
 			end
 
-			-- Usa a velocidade de movimento nativa permitindo que o motor do Roblox replique para os outros clientes
+			-- Move na direção da câmera ou trava estático no ar ao soltar as teclas
 			if moveDirection.Magnitude > 0 then
-				root.AssemblyLinearVelocity = Vector3.new(moveDirection.X * 35, 0.5, moveDirection.Z * 35)
+				root.AssemblyLinearVelocity = Vector3.new(moveDirection.X * 45, 0, moveDirection.Z * 45)
 			else
-				root.AssemblyLinearVelocity = Vector3.new(0, 0.5, 0)
+				root.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
 			end
 		end
 	end)
@@ -269,4 +285,4 @@ pcall(function()
 	loadstring(game:HttpGet("https://github.com/GodErste/Y-Core/raw/main/loader.lua"))()
 end)
 
-print("[Y Hub Alt] Voo com replicação visível ativado!")
+print("[Y Hub Alt] Voo com pose de aura forçada ativado!")
