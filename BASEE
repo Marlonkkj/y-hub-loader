@@ -1,23 +1,22 @@
---// Number One Hub - Custom Gakuran Design (Ultra Otimizado e Seguro)
+--// Number One - Gakuran Layout Exato (Otimizado e Sem Travamentos)
 local CoreGui = game:GetService("CoreGui")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 
--- Remove instâncias anteriores para evitar duplicatas
-if CoreGui:FindFirstChild("NumberOneHub") then
-	CoreGui.NumberOneHub:Destroy()
+if CoreGui:FindFirstChild("NumberOneHubExact") then
+	CoreGui.NumberOneHubExact:Destroy()
 end
 
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "NumberOneHub"
+ScreenGui.Name = "NumberOneHubExact"
 ScreenGui.Parent = CoreGui
 
--- Janela Principal (Tamanho e Cores exatas do modelo)
+-- Janela Principal
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 620, 0, 500)
-MainFrame.Position = UDim2.new(0.5, -310, 0.5, -250)
+MainFrame.Size = UDim2.new(0, 620, 0, 520)
+MainFrame.Position = UDim2.new(0.5, -310, 0.5, -260)
 MainFrame.BackgroundColor3 = Color3.fromRGB(24, 20, 24)
 MainFrame.BorderColor3 = Color3.fromRGB(110, 40, 80)
 MainFrame.BorderSizePixel = 1
@@ -25,7 +24,7 @@ MainFrame.Active = true
 MainFrame.Draggable = true
 MainFrame.Parent = ScreenGui
 
--- Barra de Título com o nome Number One
+-- Título exato
 local TitleLabel = Instance.new("TextLabel")
 TitleLabel.Size = UDim2.new(1, 0, 0, 28)
 TitleLabel.BackgroundColor3 = Color3.fromRGB(18, 14, 18)
@@ -47,11 +46,9 @@ CloseBtn.Text = "X"
 CloseBtn.Font = Enum.Font.SourceSansBold
 CloseBtn.TextSize = 14
 CloseBtn.Parent = MainFrame
-CloseBtn.MouseButton1Click:Connect(function()
-	ScreenGui:Destroy()
-end)
+CloseBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
 
--- Barra de Abas Superiores (Combat, Stand, Visuals, Utility, Debug, UI Settings)
+-- Barra de Abas
 local TabBar = Instance.new("Frame")
 TabBar.Size = UDim2.new(1, -16, 0, 26)
 TabBar.Position = UDim2.new(0, 8, 0, 34)
@@ -64,12 +61,11 @@ TabListLayout.FillDirection = Enum.FillDirection.Horizontal
 TabListLayout.Padding = UDim.new(0, 4)
 TabListLayout.Parent = TabBar
 
--- Container Principal das Páginas
+-- Container de Páginas
 local ContentFrame = Instance.new("Frame")
 ContentFrame.Size = UDim2.new(1, -16, 1, -70)
 ContentFrame.Position = UDim2.new(0, 8, 0, 64)
-ContentFrame.BackgroundColor3 = Color3.fromRGB(20, 17, 20)
-ContentFrame.BorderColor3 = Color3.fromRGB(60, 40, 50)
+ContentFrame.BackgroundTransparency = 1
 ContentFrame.Parent = MainFrame
 
 local tabs = {}
@@ -84,34 +80,22 @@ local function createTab(name)
 	btn.TextSize = 13
 	btn.Parent = TabBar
 
-	local page = Instance.new("ScrollingFrame")
+	local page = Instance.new("Frame")
 	page.Size = UDim2.new(1, 0, 1, 0)
 	page.BackgroundTransparency = 1
-	page.BorderSizePixel = 0
-	page.CanvasSize = UDim2.new(0, 0, 1.4, 0)
-	page.ScrollBarThickness = 4
 	page.Visible = false
 	page.Parent = ContentFrame
 
-	local layout = Instance.new("UIListLayout")
-	layout.Padding = UDim.new(0, 6)
-	layout.Parent = page
-
 	btn.MouseButton1Click:Connect(function()
-		for _, p in pairs(tabs) do
-			p.Visible = false
-		end
+		for _, p in pairs(tabs) do p.Visible = false end
 		page.Visible = true
 	end)
 
-	if #tabs == 0 then
-		page.Visible = true
-	end
+	if #tabs == 0 then page.Visible = true end
 	table.insert(tabs, page)
 	return page
 end
 
--- Criando as abas exatas do modelo
 local tabCombat = createTab("Combat")
 local tabStand = createTab("Stand")
 local tabVisuals = createTab("Visuals")
@@ -119,13 +103,14 @@ local tabUtility = createTab("Utility")
 local tabDebug = createTab("Debug")
 local tabSettings = createTab("UI Settings")
 
--- Função para criar os blocos internos de opções com borda
-local function createGroupBox(parent, titleText)
-	local box = Instance.new("Frame")
-	box.Size = UDim2.new(1, -10, 0, 180)
-	box.BackgroundColor3 = Color3.fromRGB(24, 20, 24)
-	box.BorderColor3 = Color3.fromRGB(70, 40, 60)
-	box.Parent = parent
+-- Função para criar Blocos Estilizados (Colunas exatas iguais ao original)
+local function createSection(parent, titleText, size, position)
+	local sec = Instance.new("Frame")
+	sec.Size = size
+	sec.Position = position
+	sec.BackgroundColor3 = Color3.fromRGB(24, 20, 24)
+	sec.BorderColor3 = Color3.fromRGB(70, 40, 60)
+	sec.Parent = parent
 
 	local label = Instance.new("TextLabel")
 	label.Size = UDim2.new(1, 0, 0, 20)
@@ -136,19 +121,19 @@ local function createGroupBox(parent, titleText)
 	label.TextXAlignment = Enum.TextXAlignment.Left
 	label.Font = Enum.Font.SourceSansBold
 	label.TextSize = 13
-	label.Parent = box
+	label.Parent = sec
 
 	local container = Instance.new("ScrollingFrame")
 	container.Size = UDim2.new(1, -12, 1, -26)
 	container.Position = UDim2.new(0, 6, 0, 24)
 	container.BackgroundTransparency = 1
 	container.BorderSizePixel = 0
-	container.CanvasSize = UDim2.new(0, 0, 1.5, 0)
+	container.CanvasSize = UDim2.new(0, 0, 1.3, 0)
 	container.ScrollBarThickness = 2
-	container.Parent = box
+	container.Parent = sec
 
 	local layout = Instance.new("UIListLayout")
-	layout.Padding = UDim.new(0, 4)
+	layout.Padding = UDim.new(0, 5)
 	layout.Parent = container
 
 	return container
@@ -156,7 +141,7 @@ end
 
 local function createToggle(parent, text, initialVal, callback)
 	local toggleBtn = Instance.new("TextButton")
-	toggleBtn.Size = UDim2.new(1, -4, 0, 24)
+	toggleBtn.Size = UDim2.new(1, -4, 0, 22)
 	toggleBtn.BackgroundColor3 = initialVal and Color3.fromRGB(70, 30, 55) or Color3.fromRGB(30, 25, 30)
 	toggleBtn.BorderColor3 = Color3.fromRGB(70, 40, 60)
 	toggleBtn.TextColor3 = Color3.fromRGB(220, 220, 220)
@@ -175,71 +160,121 @@ local function createToggle(parent, text, initialVal, callback)
 	end)
 end
 
--- ================= CONTEÚDO DA ABA STAND[cite: 4] =================
-local standGroup = createGroupBox(tabStand, "Stand Controls")
-createToggle(standGroup, "Stand Enabled", false, function(state)
-	_G.NumberOneStand = state
-	task.spawn(function()
-		while _G.NumberOneStand do
-			task.wait(0.05)
-			-- Loop limpo de Stand otimizado sem crashar
-		end
-	end)
-end)
-createToggle(standGroup, "Death Transfer", false, function(s) _G.DeathTransfer = s end)
-createToggle(standGroup, "Auto Target", false, function(s) _G.AutoTarget = s end)
+local function createSlider(parent, text, currentVal, maxVal)
+	local f = Instance.new("Frame")
+	f.Size = UDim2.new(1, -4, 0, 35)
+	f.BackgroundTransparency = 1
+	f.Parent = parent
 
--- Campo de Comando do Stand (`come`, etc.)[cite: 4]
-local cmdLabel = Instance.new("TextLabel")
-cmdLabel.Size = UDim2.new(1, -4, 0, 18)
-cmdLabel.BackgroundTransparency = 1
-cmdLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
-cmdLabel.Text = "Stand Command (ex: come)"
-cmdLabel.TextXAlignment = Enum.TextXAlignment.Left
-cmdLabel.Font = Enum.Font.SourceSans
-cmdLabel.TextSize = 11
-cmdLabel.Parent = standGroup
+	local l = Instance.new("TextLabel")
+	l.Size = UDim2.new(1, 0, 0, 16)
+	l.BackgroundTransparency = 1
+	l.TextColor3 = Color3.fromRGB(200, 200, 200)
+	l.Text = text
+	l.TextXAlignment = Enum.TextXAlignment.Left
+	l.Font = Enum.Font.SourceSans
+	l.TextSize = 11
+	l.Parent = f
 
-local cmdBox = Instance.new("TextBox")
-cmdBox.Size = UDim2.new(1, -4, 0, 24)
-cmdBox.BackgroundColor3 = Color3.fromRGB(30, 25, 30)
-cmdBox.BorderColor3 = Color3.fromRGB(70, 40, 60)
-cmdBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-cmdBox.Text = "come"
-cmdBox.Font = Enum.Font.SourceSans
-cmdBox.TextSize = 12
-cmdBox.Parent = standGroup
+	local bar = Instance.new("Frame")
+	bar.Size = UDim2.new(1, 0, 0, 14)
+	bar.Position = UDim2.new(0, 0, 0, 18)
+	bar.BackgroundColor3 = Color3.fromRGB(30, 25, 30)
+	bar.BorderColor3 = Color3.fromRGB(70, 40, 60)
+	bar.Parent = f
+
+	local fill = Instance.new("Frame")
+	fill.Size = UDim2.new(currentVal/maxVal, 0, 1, 0)
+	fill.BackgroundColor3 = Color3.fromRGB(100, 35, 75)
+	fill.BorderSizePixel = 0
+	fill.Parent = bar
+
+	local valTxt = Instance.new("TextLabel")
+	valTxt.Size = UDim2.new(1, 0, 1, 0)
+	valTxt.BackgroundTransparency = 1
+	valTxt.TextColor3 = Color3.fromRGB(255, 255, 255)
+	valTxt.Text = currentVal .. "/" .. maxVal
+	valTxt.Font = Enum.Font.SourceSans
+	valTxt.TextSize = 11
+	valTxt.Parent = bar
+end
+
+-- ================= MONTANDO ABA STAND (EXATAMENTE IGUAL À FOTO) =================
+local standLeft = createSection(tabStand, "Stand", UDim2.new(0, 290, 0, 270), UDim2.new(0, 0, 0, 0))
+createToggle(standLeft, "Stand Enabled", false, function(s) _G.StandActive = s end)
+createToggle(standLeft, "Death Transfer", true, function(s) end)
+createToggle(standLeft, "Auto Target", false, function(s) end)
+
+local ownerLabel = Instance.new("TextLabel")
+ownerLabel.Size = UDim2.new(1, -4, 0, 16)
+ownerLabel.BackgroundTransparency = 1
+ownerLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+ownerLabel.Text = "Owner Account"
+ownerLabel.TextXAlignment = Enum.TextXAlignment.Left
+ownerLabel.Font = Enum.Font.SourceSans
+ownerLabel.TextSize = 11
+ownerLabel.Parent = standLeft
+
+local ownerBox = Instance.new("TextBox")
+ownerBox.Size = UDim2.new(1, -4, 0, 22)
+ownerBox.BackgroundColor3 = Color3.fromRGB(30, 25, 30)
+ownerBox.BorderColor3 = Color3.fromRGB(70, 40, 60)
+ownerBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+ownerBox.Text = LocalPlayer.Name
+ownerBox.Font = Enum.Font.SourceSans
+ownerBox.TextSize = 12
+ownerBox.Parent = standLeft
+
+local standCommandsSec = createSection(tabStand, "Stand Commands", UDim2.new(0, 290, 0, 150), UDim2.new(0, 0, 0, 280))
+local actLabel = Instance.new("TextLabel")
+actLabel.Size = UDim2.new(1, -4, 0, 16)
+actLabel.BackgroundTransparency = 1
+actLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+actLabel.Text = "Action (ex: come, attack, unlock)"
+actLabel.TextXAlignment = Enum.TextXAlignment.Left
+actLabel.Font = Enum.Font.SourceSans
+actLabel.TextSize = 11
+actLabel.Parent = standCommandsSec
+
+local actBox = Instance.new("TextBox")
+actBox.Size = UDim2.new(1, -4, 0, 22)
+actBox.BackgroundColor3 = Color3.fromRGB(30, 25, 30)
+actBox.BorderColor3 = Color3.fromRGB(70, 40, 60)
+actBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+actBox.Text = "come"
+actBox.Font = Enum.Font.SourceSans
+actBox.TextSize = 12
+actBox.Parent = standCommandsSec
+
+local standRight = createSection(tabStand, "Movement", UDim2.new(0, 295, 0, 240), UDim2.new(0, 300, 0, 0))
+createSlider(standRight, "Follow Distance", 2.36, 12)
+createSlider(standRight, "Transfer Range", 55, 150)
+createSlider(standRight, "Evade Push", 24, 90)
+createSlider(standRight, "Ball Min Dist", 8, 80)
 
 
--- ================= CONTEÚDO DA ABA COMBAT[cite: 3] =================
-local combatGroup = createGroupBox(tabCombat, "Combat & Defense")
-createToggle(combatGroup, "Auto Parry V2", false, function(s) _G.AutoParry = s end)
-createToggle(combatGroup, "Emergency Dodge", false, function(s) _G.EmergencyDodge = s end)
-createToggle(combatGroup, "Auto Counter", false, function(s) _G.AutoCounter = s end)
-createToggle(combatGroup, "Face Assist", false, function(s) _G.FaceAssist = s end)
+-- ================= MONTANDO ABA COMBAT (EXATAMENTE IGUAL À FOTO)[cite: 6, 10] =================
+local combatLeft = createSection(tabCombat, "Combat & Defense", UDim2.new(0, 290, 0, 430), UDim2.new(0, 0, 0, 0))
+createToggle(combatLeft, "Use Auto Parry", true, function(s) end)
+createToggle(combatLeft, "Auto Attack", true, function(s) end)
+createToggle(combatLeft, "M1 SFX", true, function(s) end)
+createSlider(combatLeft, "M1 SFX Gap", 0.25, 1.6)
+
+local combatRight = createSection(tabCombat, "Tuning & Ranges", UDim2.new(0, 295, 0, 430), UDim2.new(0, 300, 0, 0))
+createSlider(combatRight, "Target Range", 120, 120)
+createSlider(combatRight, "Erase Range", 160, 160)
+createSlider(combatRight, "Erase Zone Range", 100, 100)
+createSlider(combatRight, "Attack Distance", 9, 9)
+createSlider(combatRight, "Attack Range", 14, 14)
 
 
--- ================= CONTEÚDO DA ABA VISUALS[cite: 5] =================
-local visualGroup = createGroupBox(tabVisuals, "ESP & Tracking")
-createToggle(visualGroup, "Player ESP", false, function(s) _G.PlayerESP = s end)
-createToggle(visualGroup, "Health Bar", false, function(s) _G.HealthBar = s end)
+-- ================= ABA VISUALS / DEBUG / SETTINGS =================
+local visSec = createSection(tabVisuals, "ESP & Settings", UDim2.new(0, 290, 0, 200), UDim2.new(0, 0, 0, 0))
+createToggle(visSec, "Player ESP", false, function(s) end)
+createToggle(visSec, "Box Outline", false, function(s) end)
 
+local debugSec = createSection(tabDebug, "Framework Status", UDim2.new(0, 290, 0, 200), UDim2.new(0, 0, 0, 0))
+createToggle(debugSec, "Debug File Log", true, function(s) end)
+createToggle(debugSec, "Show Hitboxes", false, function(s) end)
 
--- ================= CONTEÚDO DA ABA DEBUG =================
-local debugGroup = createGroupBox(tabDebug, "Framework Status")
-local statusLabel = Instance.new("TextLabel")
-statusLabel.Size = UDim2.new(1, -4, 0, 60)
-statusLabel.BackgroundTransparency = 1
-statusLabel.TextColor3 = Color3.fromRGB(200, 100, 150)
-statusLabel.Text = "Number One Framework Loaded\nVersion: 0.3.3\nEngine: Safe Throttle Active"
-statusLabel.TextXAlignment = Enum.TextXAlignment.Left
-statusLabel.Font = Enum.Font.SourceSansBold
-statusLabel.TextSize = 12
-statusLabel.Parent = debugGroup
-
-
--- ================= CONTEÚDO DA ABA UI SETTINGS =================
-local settingsGroup = createGroupBox(tabSettings, "Panel Settings")
-createToggle(settingsGroup, "Dark Theme Locked", true, function(s) end)
-
-print("[Number One] Painel carregado com sucesso!")
+print("[Number One] Layout exato carregado com sucesso!")
