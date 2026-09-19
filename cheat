@@ -1,11 +1,11 @@
---// Y Hub Alt - Código Completo Ultra-Agressivo (Anti-Lag Máximo + Loader)
+--// Y Hub Alt - Código Completo Ultra-Agressivo (Anti-Lag Máximo + Loader + Otimização de Servidor Cheio)
 pcall(function()
 	if setfpscap then
 		setfpscap(30) -- Trava o FPS para aliviar o processador
 	end
 end)
 
--- 1. Limpeza gráfica extrema (Remove luzes, sombras, texturas, partículas e sons)
+-- 1. Limpeza gráfica otimizada (Mantém o mapa visível e limpa apenas texturas/efeitos pesados)
 pcall(function()
 	local Lighting = game:GetService("Lighting")
 	Lighting.GlobalShadows = false
@@ -19,19 +19,21 @@ pcall(function()
 	end
 
 	for _, v in ipairs(workspace:GetDescendants()) do
-		if v:IsA("BasePart") then
-			v.Material = Enum.Material.SmoothPlastic
-			v.CastShadow = false
-			v.Reflectance = 0
-		elseif v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Beam") or v:IsA("Fire") or v:IsA("Smoke") or v:IsA("Sparkles") or v:IsA("Explosion") then
-			v:Destroy()
-		elseif v:IsA("Sound") then
-			v:Destroy() -- Remove poluição sonora que consome memória
-		end
+		pcall(function()
+			if v:IsA("BasePart") then
+				v.Material = Enum.Material.SmoothPlastic
+				v.CastShadow = false
+				v.Reflectance = 0
+			elseif v:IsA("Decal") or v:IsA("Texture") or v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Beam") or v:IsA("Fire") or v:IsA("Smoke") or v:IsA("Sparkles") or v:IsA("Explosion") then
+				v:Destroy()
+			elseif v:IsA("Sound") then
+				v:Destroy() -- Remove poluição sonora que consome memória
+			end
+		end)
 	end
 end)
 
--- 2. Anti-Lag Agressivo: Congela e invisibiliza jogadores distantes e corta colisões
+-- 2. Anti-Lag Agressivo Otimizado (Evita travamentos drásticos no !attack)
 pcall(function()
 	local Players = game:GetService("Players")
 	local LocalPlayer = Players.LocalPlayer
@@ -40,8 +42,8 @@ pcall(function()
 	local counter = 0
 	RunService.Heartbeat:Connect(function()
 		counter = counter + 1
-		-- Roda a cada 20 frames para poupar ciclos da CPU
-		if counter % 20 ~= 0 then return end
+		-- Roda a cada 30 frames para aliviar totalmente a CPU durante o combate lotado
+		if counter % 30 ~= 0 then return end
 
 		pcall(function()
 			local localRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
@@ -54,24 +56,20 @@ pcall(function()
 					
 					if root then
 						local distance = (root.Position - localRoot.Position).Magnitude
-						-- Se o player estiver a mais de 25 studs, desliga totalmente a renderização e colisão dele
-						if distance > 25 then
+						-- Se o player estiver a mais de 20 studs, oculta e desliga colisão sem destruir elementos críticos
+						if distance > 20 then
 							for _, part in ipairs(char:GetDescendants()) do
 								if part:IsA("BasePart") then
 									part.Transparency = 1
 									part.CanCollide = false
-									part.LocalTransparencyModifier = 1
-								elseif part:IsA("Accessory") or part:IsA("Clothing") or part:IsA("BillboardGui") then
-									part:Destroy()
 								end
 							end
 						else
-							-- Restaura quando se aproxima
+							-- Restaura quando se aproxima para o ataque
 							for _, part in ipairs(char:GetDescendants()) do
 								if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" and part.Transparency == 1 then
 									part.Transparency = 0
 									part.CanCollide = true
-									part.LocalTransparencyModifier = 0
 								end
 							end
 						end
@@ -100,7 +98,7 @@ local success, err = pcall(function()
 end)
 
 if not success then
-	warn("[Y Hub Alt] Falha ao carregar: " + tostring(err))
+	warn("[Y Hub Alt] Falha ao carregar: " .. tostring(err))
 else
-	print("[Y Hub Alt] Injetado com sucesso no modo Ultra-Agressivo!")
+	print("[Y Hub Alt] Injetado com sucesso no modo Otimizado para Servidor Cheio!")
 end
