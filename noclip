@@ -1,10 +1,9 @@
-
---// NoClip Isolado para Injetar Separado
+--// NoClip Blindado e Persistente
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
--- Garante que não duplique a conexão se injetar mais de uma vez
+-- Limpa conexões antigas para evitar acumulo
 if _G.NoClipConnection then
     _G.NoClipConnection:Disconnect()
     _G.NoClipConnection = nil
@@ -12,6 +11,7 @@ end
 
 _G.NoClipActive = true
 
+-- Função principal de NoClip por frame
 _G.NoClipConnection = RunService.Stepped:Connect(function()
     if not _G.NoClipActive then return end
     
@@ -25,4 +25,17 @@ _G.NoClipConnection = RunService.Stepped:Connect(function()
     end
 end)
 
-print("[Number One] NoClip ativado com sucesso!")
+-- Reaplicar caso o player morra e renasça
+LocalPlayer.CharacterAdded:Connect(function(newChar)
+    task.wait(0.5)
+    local character = newChar
+    if _G.NoClipActive then
+        for _, part in ipairs(character:GetDescendants()) do
+            if part:IsA("BasePart") and part.CanCollide then
+                part.CanCollide = false
+            end
+        end
+    end
+end)
+
+print("[Number One] NoClip Blindado Ativado!")
