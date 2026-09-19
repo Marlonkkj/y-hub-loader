@@ -1,11 +1,11 @@
---// Y Hub Alt - Modo Ultra Fluido (Zero Gargalo de Servidor Cheio + Loader)
+--// Y Hub Alt - Correção Definitiva de Travamento e Renderização (Servidores Cheios)
 pcall(function()
 	if setfpscap then
-		setfpscap(30)
+		setfpscap(60) -- Libera o FPS para 60 para garantir fluidez total
 	end
 end)
 
--- 1. Limpeza Gráfica Extrema: Deixa o mapa com textura lisa e limpa, sem pesar a placa de vídeo
+-- 1. Limpeza Segura do Mapa (Deixa o cenário liso e leve sem corromper texturas essenciais)
 pcall(function()
 	local Lighting = game:GetService("Lighting")
 	Lighting.GlobalShadows = false
@@ -24,36 +24,85 @@ pcall(function()
 				v.Material = Enum.Material.SmoothPlastic
 				v.CastShadow = false
 				v.Reflectance = 0
-			elseif v:IsA("Decal") or v:IsA("Texture") or v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Beam") or v:IsA("Fire") or v:IsA("Smoke") or v:IsA("Sparkles") or v:IsA("Explosion") then
-				v:Destroy()
-			elseif v:IsA("Sound") then
+			elseif v:IsA("Decal") or v:IsA("Texture") or v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Beam") or v:IsA("Fire") or v:IsA("Smoke") then
 				v:Destroy()
 			end
 		end)
 	end
 end)
 
--- 2. Coletor de lixo hiper-agressivo para limpar a memória RAM a cada 2 segundos e evitar vazamento
+-- 2. Anti-Lag Otimizado por Distância (Sem travamentos e sem congelar o personagem)
+pcall(function()
+	local Players = game:GetService("Players")
+	local LocalPlayer = Players.LocalPlayer
+	local RunService = game:GetService("RunService")
+
+	local MAX_DIST = 40 -- Distância segura para renderizar os outros jogadores
+	local frameCounter = 0
+
+	RunService.Heartbeat:Connect(function()
+		frameCounter = frameCounter + 1
+		if frameCounter % 15 ~= 0 then return end -- Executa de forma espaçada para zerar o gargalo da CPU
+
+		pcall(function()
+			local char = LocalPlayer.Character
+			local root = char and char:FindFirstChild("HumanoidRootPart")
+			if not root then return end
+
+			for _, player in ipairs(Players:GetPlayers()) do
+				if player ~= LocalPlayer and player.Character then
+					local enemyChar = player.Character
+					local enemyRoot = enemyChar:FindFirstChild("HumanoidRootPart")
+
+					if enemyRoot then
+						local distance = (root.Position - enemyRoot.Position).Magnitude
+						local humanoid = enemyChar:FindFirstChildOfClass("Humanoid")
+						
+						-- Se estiver longe, desativa apenas a colisão e deixa transparente sem destruir dados do painel
+						if distance > MAX_DIST then
+							for _, part in ipairs(enemyChar:GetDescendants()) do
+								if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
+									part.LocalTransparencyModifier = 1
+									part.CanCollide = false
+								end
+							end
+						else
+							-- Se aproximou, restaura a visão perfeitamente para o combate/comandos
+							for _, part in ipairs(enemyChar:GetDescendants()) do
+								if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
+									part.LocalTransparencyModifier = 0
+									part.CanCollide = true
+								end
+							end
+						end
+					end
+				end
+			end
+		end)
+	end)
+end)
+
+-- 3. Coletor de Lixo para Estabilizar a Memória RAM
 pcall(function()
 	collectgarbage("setpause", 100)
 	collectgarbage("setstepmul", 300)
 	
 	task.spawn(function()
-		while task.wait(2) do
+		while task.wait(3) do
 			collectgarbage("step", 300)
 		end
 	end)
 end)
 
--- 3. Carregamento Seguro e Isolado do Loader (Evita congelamento por falha de thread)
+-- 4. Carregamento Seguro e Assíncrono do Loader Principal
 task.spawn(function()
 	local success, err = pcall(function()
 		loadstring(game:HttpGet("https://raw.githubusercontent.com/GodErste/Y-Core/refs/heads/main/loader.lua"))()
 	end)
 
 	if not success then
-		warn("[Y Hub Alt] Erro no Loader: " .. tostring(err))
+		warn("[Y Hub Alt] Erro ao carregar o loader: " + tostring(err))
 	else
-		print("[Y Hub Alt] Carregado sem gargalos!")
+		print("[Y Hub Alt] Injetado com sucesso e fluido!")
 	end
 end)
