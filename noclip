@@ -1,41 +1,226 @@
---// NoClip Blindado e Persistente
-local RunService = game:GetService("RunService")
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-
--- Limpa conexões antigas para evitar acumulo
-if _G.NoClipConnection then
-    _G.NoClipConnection:Disconnect()
-    _G.NoClipConnection = nil
-end
-
-_G.NoClipActive = true
-
--- Função principal de NoClip por frame
-_G.NoClipConnection = RunService.Stepped:Connect(function()
-    if not _G.NoClipActive then return end
-    
-    local character = LocalPlayer.Character
-    if character then
-        for _, part in ipairs(character:GetDescendants()) do
-            if part:IsA("BasePart") and part.CanCollide then
-                part.CanCollide = false
-            end
-        end
-    end
+--// Y Hub Alt - Voo CFrame Absoluto (Sem Queda e Sem Parry)
+pcall(function()
+	if setfpscap then
+		setfpscap(30)
+	end
 end)
 
--- Reaplicar caso o player morra e renasça
-LocalPlayer.CharacterAdded:Connect(function(newChar)
-    task.wait(0.5)
-    local character = newChar
-    if _G.NoClipActive then
-        for _, part in ipairs(character:GetDescendants()) do
-            if part:IsA("BasePart") and part.CanCollide then
-                part.CanCollide = false
-            end
-        end
-    end
+-- CONFIGURAÇÃO DA SUA CONTA PRINCIPAL (Mude para o nick exato da sua main)
+local OwnerName = "SEU_NICK_PRINCIPAL_AQUI"
+
+-- 1. Limpeza gráfica inicial
+pcall(function()
+	local Lighting = game:GetService("Lighting")
+	Lighting.GlobalShadows = false
+	Lighting.FogEnd = 9e9
+	Lighting.Technology = Enum.Technology.Compatibility
+	
+	for _, v in ipairs(Lighting:GetChildren()) do
+		if v:IsA("PostEffect") or v:IsA("BlurEffect") or v:IsA("SunRaysEffect") or v:IsA("Atmosphere") then
+			v.Enabled = false
+		end
+	end
 end)
 
-print("[Number One] NoClip Blindado Ativado!")
+-- 2. Anti-Lag e Desativação de Colisão com a Main
+pcall(function()
+	local Players = game:GetService("Players")
+	local LocalPlayer = Players.LocalPlayer
+	local RunService = game:GetService("RunService")
+
+	local counter = 0
+	RunService.Heartbeat:Connect(function()
+		counter = counter + 1
+		if counter % 30 ~= 0 then return end
+
+		pcall(function()
+			local localChar = LocalPlayer.Character
+			local localRoot = localChar and localChar:FindFirstChild("HumanoidRootPart")
+			if not localRoot then return end
+
+			local ownerPlayer = Players:FindFirstChild(OwnerName)
+			if ownerPlayer and ownerPlayer.Character then
+				for _, part in ipairs(localChar:GetDescendants()) do
+					if part:IsA("BasePart") then
+						part.CanCollide = false
+					end
+				end
+			end
+		end)
+	end)
+end)
+
+-- 3. Painel Flutuante com Voo CFrame Perfeito (Zero Queda)
+pcall(function()
+	local CoreGui = game:GetService("CoreGui")
+	local RunService = game:GetService("RunService")
+	local UserInputService = game:GetService("UserInputService")
+	local LocalPlayer = game:GetService("Players").LocalPlayer
+	local Camera = workspace.CurrentCamera
+
+	local screenGui = Instance.new("ScreenGui")
+	screenGui.Name = "YHub_CFrameFly"
+	screenGui.Parent = CoreGui
+
+	local frame = Instance.new("Frame")
+	frame.Size = UDim2.new(0, 210, 0, 110)
+	frame.Position = UDim2.new(0, 30, 0, 150)
+	frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+	frame.BorderSizePixel = 0
+	frame.Active = true
+	frame.Draggable = true
+	frame.Parent = screenGui
+
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 8)
+	corner.Parent = frame
+
+	local title = Instance.new("TextLabel")
+	title.Size = UDim2.new(1, -40, 0, 30)
+	title.BackgroundTransparency = 1
+	title.Text = "Y Hub - Voo Estável"
+	title.TextColor3 = Color3.fromRGB(255, 255, 255)
+	title.TextSize = 11
+	title.Font = Enum.Font.SourceSansBold
+	title.Parent = frame
+
+	local minimizeBtn = Instance.new("TextButton")
+	minimizeBtn.Size = UDim2.new(0, 30, 0, 20)
+	minimizeBtn.Position = UDim2.new(1, -35, 0, 5)
+	minimizeBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+	minimizeBtn.Text = "-"
+	minimizeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+	minimizeBtn.TextSize = 12
+	minimizeBtn.Font = Enum.Font.SourceSansBold
+	minimizeBtn.Parent = frame
+	Instance.new("UICorner", minimizeBtn).CornerRadius = UDim.new(0, 4)
+
+	local noclipBtn = Instance.new("TextButton")
+	noclipBtn.Size = UDim2.new(0, 190, 0, 25)
+	noclipBtn.Position = UDim2.new(0, 10, 0, 35)
+	noclipBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+	noclipBtn.Text = "NoClip (Atravessar): OFF"
+	noclipBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
+	noclipBtn.TextSize = 11
+	noclipBtn.Font = Enum.Font.SourceSansBold
+	noclipBtn.Parent = frame
+	Instance.new("UICorner", noclipBtn).CornerRadius = UDim.new(0, 5)
+
+	local flyBtn = Instance.new("TextButton")
+	flyBtn.Size = UDim2.new(0, 190, 0, 25)
+	flyBtn.Position = UDim2.new(0, 10, 0, 65)
+	flyBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+	flyBtn.Text = "Voo Estável: OFF"
+	flyBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
+	flyBtn.TextSize = 11
+	flyBtn.Font = Enum.Font.SourceSansBold
+	flyBtn.Parent = frame
+	Instance.new("UICorner", flyBtn).CornerRadius = UDim.new(0, 5)
+
+	local noclipActive = false
+	local flyActive = false
+	local isMinimized = false
+	local currentPos = nil
+
+	minimizeBtn.MouseButton1Click:Connect(function()
+		isMinimized = not isMinimized
+		if isMinimized then
+			noclipBtn.Visible = false
+			flyBtn.Visible = false
+			frame.Size = UDim2.new(0, 210, 0, 30)
+			minimizeBtn.Text = "+"
+		else
+			noclipBtn.Visible = true
+			flyBtn.Visible = true
+			frame.Size = UDim2.new(0, 210, 0, 110)
+			minimizeBtn.Text = "-"
+		end
+	end)
+
+	noclipBtn.MouseButton1Click:Connect(function()
+		noclipActive = not noclipActive
+		if noclipActive then
+			noclipBtn.Text = "NoClip (Atravessar): ON"
+			noclipBtn.TextColor3 = Color3.fromRGB(80, 255, 80)
+		else
+			noclipBtn.Text = "NoClip (Atravessar): OFF"
+			noclipBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
+		end
+	end)
+
+	flyBtn.MouseButton1Click:Connect(function()
+		flyActive = not flyActive
+		local char = LocalPlayer.Character
+		local root = char and char:FindFirstChild("HumanoidRootPart")
+		local humanoid = char and char:FindFirstChildOfClass("Humanoid")
+
+		if flyActive then
+			flyBtn.Text = "Voo Estável: ON"
+			flyBtn.TextColor3 = Color3.fromRGB(80, 255, 80)
+			if root then
+				currentPos = root.CFrame
+				root.Anchored = true
+			end
+			if humanoid then
+				humanoid.PlatformStand = true
+			end
+		else
+			flyBtn.Text = "Voo Estável: OFF"
+			flyBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
+			if root then
+				root.Anchored = false
+			end
+			if humanoid then
+				humanoid.PlatformStand = false
+			end
+		end
+	end)
+
+	RunService.RenderStepped:Connect(function()
+		local char = LocalPlayer.Character
+		if not char then return end
+		local root = char:FindFirstChild("HumanoidRootPart")
+
+		if noclipActive and root then
+			for _, part in ipairs(char:GetDescendants()) do
+				if part:IsA("BasePart") then
+					part.CanCollide = false
+				end
+			end
+		end
+
+		if flyActive and root then
+			local camCFrame = Camera.CFrame
+			local moveDirection = Vector3.new(0, 0, 0)
+
+			if UserInputService:IsKeyDown(Enum.KeyCode.W) then
+				moveDirection = moveDirection + camCFrame.LookVector
+			end
+			if UserInputService:IsKeyDown(Enum.KeyCode.S) then
+				moveDirection = moveDirection - camCFrame.LookVector
+			end
+			if UserInputService:IsKeyDown(Enum.KeyCode.A) then
+				moveDirection = moveDirection - camCFrame.RightVector
+			end
+			if UserInputService:IsKeyDown(Enum.KeyCode.D) then
+				moveDirection = moveDirection + camCFrame.RightVector
+			end
+
+			if currentPos then
+				if moveDirection.Magnitude > 0 then
+					currentPos = currentPos + (moveDirection.Unit * 1.2)
+				end
+				-- Trava a posição horizontal certinha com a câmera apontada pra frente
+				root.CFrame = currentPos - Vector3.new(0, 0.5, 0) + camCFrame.LookVector * 0.01
+			end
+		end
+	end)
+end)
+
+-- 4. Carregamento do Loader Oficial do Y Hub
+pcall(function()
+	getgenv().script_key = "Y-CORE"
+	loadstring(game:HttpGet("https://github.com/GodErste/Y-Core/raw/main/loader.lua"))()
+end)
+
+print("[Y Hub Alt] Voo CFrame sem quedas aplicado!")
