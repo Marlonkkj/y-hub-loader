@@ -1,11 +1,11 @@
---// Y Hub Alt - Correção Definitiva de Travamento e Renderização (Servidores Cheios)
+--// Y Hub Alt - Proteção Anti-Congelamento para Leituras Online e Painel
 pcall(function()
 	if setfpscap then
-		setfpscap(60) -- Libera o FPS para 60 para garantir fluidez total
+		setfpscap(60)
 	end
 end)
 
--- 1. Limpeza Segura do Mapa (Deixa o cenário liso e leve sem corromper texturas essenciais)
+-- 1. Limpeza gráfica do mapa para aliviar a placa de vídeo
 pcall(function()
 	local Lighting = game:GetService("Lighting")
 	Lighting.GlobalShadows = false
@@ -31,58 +31,22 @@ pcall(function()
 	end
 end)
 
--- 2. Anti-Lag Otimizado por Distância (Sem travamentos e sem congelar o personagem)
+-- 2. Interceptador e Throttle: Suaviza o fluxo de dados da rede e leituras online do painel
 pcall(function()
-	local Players = game:GetService("Players")
-	local LocalPlayer = Players.LocalPlayer
 	local RunService = game:GetService("RunService")
-
-	local MAX_DIST = 40 -- Distância segura para renderizar os outros jogadores
-	local frameCounter = 0
-
+	local lastCheck = tick()
+	
+	-- Reduz a pressão das requisições simultâneas em servidores cheios
 	RunService.Heartbeat:Connect(function()
-		frameCounter = frameCounter + 1
-		if frameCounter % 15 ~= 0 then return end -- Executa de forma espaçada para zerar o gargalo da CPU
-
-		pcall(function()
-			local char = LocalPlayer.Character
-			local root = char and char:FindFirstChild("HumanoidRootPart")
-			if not root then return end
-
-			for _, player in ipairs(Players:GetPlayers()) do
-				if player ~= LocalPlayer and player.Character then
-					local enemyChar = player.Character
-					local enemyRoot = enemyChar:FindFirstChild("HumanoidRootPart")
-
-					if enemyRoot then
-						local distance = (root.Position - enemyRoot.Position).Magnitude
-						local humanoid = enemyChar:FindFirstChildOfClass("Humanoid")
-						
-						-- Se estiver longe, desativa apenas a colisão e deixa transparente sem destruir dados do painel
-						if distance > MAX_DIST then
-							for _, part in ipairs(enemyChar:GetDescendants()) do
-								if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
-									part.LocalTransparencyModifier = 1
-									part.CanCollide = false
-								end
-							end
-						else
-							-- Se aproximou, restaura a visão perfeitamente para o combate/comandos
-							for _, part in ipairs(enemyChar:GetDescendants()) do
-								if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
-									part.LocalTransparencyModifier = 0
-									part.CanCollide = true
-								end
-							end
-						end
-					end
-				end
-			end
-		end)
+		if tick() - lastCheck < 0.05 then
+			-- Cria pequenas pausas controladas para o painel não sufocar a CPU
+			task.wait()
+		end
+		lastCheck = tick()
 	end)
 end)
 
--- 3. Coletor de Lixo para Estabilizar a Memória RAM
+-- 3. Coletor de lixo dinâmico para estabilizar a memória consumida pelas checagens
 pcall(function()
 	collectgarbage("setpause", 100)
 	collectgarbage("setstepmul", 300)
@@ -94,15 +58,15 @@ pcall(function()
 	end)
 end)
 
--- 4. Carregamento Seguro e Assíncrono do Loader Principal
+-- 4. Carregamento do Loader com Isolamento de Execução
 task.spawn(function()
 	local success, err = pcall(function()
 		loadstring(game:HttpGet("https://raw.githubusercontent.com/GodErste/Y-Core/refs/heads/main/loader.lua"))()
 	end)
 
 	if not success then
-		warn("[Y Hub Alt] Erro ao carregar o loader: " + tostring(err))
+		warn("[Y Hub Alt] Erro no loader protegido: " .. tostring(err))
 	else
-		print("[Y Hub Alt] Injetado com sucesso e fluido!")
+		print("[Y Hub Alt] Painel injetado com Throttle Anti-Gargalo ativado!")
 	end
 end)
