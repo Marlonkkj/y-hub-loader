@@ -1,4 +1,4 @@
---// Y Hub Alt - Voo Ninja Rápido e Fluido
+--// Y Hub Alt - Voo Ninja com Ajuste de Velocidade e Aura Fixa
 pcall(function()
 	if setfpscap then
 		setfpscap(30)
@@ -112,7 +112,7 @@ pcall(function()
 	end)
 end)
 
--- 4. Painel Flutuante com Voo Rápido Ninja
+-- 4. Painel Flutuante com Voo, Ajuste de Velocidade e Pose Fixa de Braços para Trás
 pcall(function()
 	local CoreGui = game:GetService("CoreGui")
 	local RunService = game:GetService("RunService")
@@ -121,11 +121,11 @@ pcall(function()
 	local Camera = workspace.CurrentCamera
 
 	local screenGui = Instance.new("ScreenGui")
-	screenGui.Name = "YHub_FastNinjaFlight"
+	screenGui.Name = "YHub_CustomNinjaFlight"
 	screenGui.Parent = CoreGui
 
 	local frame = Instance.new("Frame")
-	frame.Size = UDim2.new(0, 210, 0, 80)
+	frame.Size = UDim2.new(0, 210, 0, 115)
 	frame.Position = UDim2.new(0, 30, 0, 150)
 	frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 	frame.BorderSizePixel = 0
@@ -140,7 +140,7 @@ pcall(function()
 	local title = Instance.new("TextLabel")
 	title.Size = UDim2.new(1, -40, 0, 30)
 	title.BackgroundTransparency = 1
-	title.Text = "Y Hub - Voo Ninja Rápido"
+	title.Text = "Y Hub - Voo Ninja Ajustável"
 	title.TextColor3 = Color3.fromRGB(255, 255, 255)
 	title.TextSize = 11
 	title.Font = Enum.Font.SourceSansBold
@@ -158,15 +158,50 @@ pcall(function()
 	Instance.new("UICorner", minimizeBtn).CornerRadius = UDim.new(0, 4)
 
 	local toggleBtn = Instance.new("TextButton")
-	toggleBtn.Size = UDim2.new(0, 190, 0, 30)
-	toggleBtn.Position = UDim2.new(0, 10, 0, 38)
+	toggleBtn.Size = UDim2.new(0, 190, 0, 26)
+	toggleBtn.Position = UDim2.new(0, 10, 0, 34)
 	toggleBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-	toggleBtn.Text = "Voo Rápido: OFF"
+	toggleBtn.Text = "Voo: OFF"
 	toggleBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
 	toggleBtn.TextSize = 11
 	toggleBtn.Font = Enum.Font.SourceSansBold
 	toggleBtn.Parent = frame
 	Instance.new("UICorner", toggleBtn).CornerRadius = UDim.new(0, 5)
+
+	-- Botões de Velocidade (- e +)
+	local speedVal = 60 -- Velocidade padrão inicial
+
+	local speedLabel = Instance.new("TextLabel")
+	speedLabel.Size = UDim2.new(0, 190, 0, 20)
+	speedLabel.Position = UDim2.new(0, 10, 0, 64)
+	speedLabel.BackgroundTransparency = 1
+	speedLabel.Text = "Velocidade: 60"
+	speedLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+	speedLabel.TextSize = 11
+	speedLabel.Font = Enum.Font.SourceSansBold
+	speedLabel.Parent = frame
+
+	local menosBtn = Instance.new("TextButton")
+	menosBtn.Size = UDim2.new(0, 90, 0, 22)
+	menosBtn.Position = UDim2.new(0, 10, 0, 87)
+	menosBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+	menosBtn.Text = "- Velocidade"
+	menosBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+	menosBtn.TextSize = 10
+	menosBtn.Font = Enum.Font.SourceSansBold
+	menosBtn.Parent = frame
+	Instance.new("UICorner", menosBtn).CornerRadius = UDim.new(0, 4)
+
+	local maisBtn = Instance.new("TextButton")
+	maisBtn.Size = UDim2.new(0, 90, 0, 22)
+	maisBtn.Position = UDim2.new(0, 110, 0, 87)
+	maisBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+	maisBtn.Text = "+ Velocidade"
+	maisBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+	maisBtn.TextSize = 10
+	maisBtn.Font = Enum.Font.SourceSansBold
+	maisBtn.Parent = frame
+	Instance.new("UICorner", maisBtn).CornerRadius = UDim.new(0, 4)
 
 	local active = false
 	local isMinimized = false
@@ -177,13 +212,29 @@ pcall(function()
 		isMinimized = not isMinimized
 		if isMinimized then
 			toggleBtn.Visible = false
+			speedLabel.Visible = false
+			menosBtn.Visible = false
+			maisBtn.Visible = false
 			frame.Size = UDim2.new(0, 210, 0, 30)
 			minimizeBtn.Text = "+"
 		else
 			toggleBtn.Visible = true
-			frame.Size = UDim2.new(0, 210, 0, 80)
+			speedLabel.Visible = true
+			menosBtn.Visible = true
+			maisBtn.Visible = true
+			frame.Size = UDim2.new(0, 210, 0, 115)
 			minimizeBtn.Text = "-"
 		end
+	end)
+
+	menosBtn.MouseButton1Click:Connect(function()
+		speedVal = math.clamp(speedVal - 10, 20, 150)
+		speedLabel.Text = "Velocidade: " .. speedVal
+	end)
+
+	maisBtn.MouseButton1Click:Connect(function()
+		speedVal = math.clamp(speedVal + 10, 20, 150)
+		speedLabel.Text = "Velocidade: " .. speedVal
 	end)
 
 	toggleBtn.MouseButton1Click:Connect(function()
@@ -194,7 +245,7 @@ pcall(function()
 		local animator = humanoid and humanoid:FindFirstChildOfClass("Animator")
 
 		if active then
-			toggleBtn.Text = "Voo Rápido: ON"
+			toggleBtn.Text = "Voo: ON"
 			toggleBtn.TextColor3 = Color3.fromRGB(80, 255, 80)
 
 			if root and not bodyVelocity then
@@ -204,18 +255,19 @@ pcall(function()
 				bodyVelocity.Parent = root
 			end
 
+			-- Força a animação de braços para trás com prioridade máxima (Action4) para sobrepor qualquer pose
 			if animator then
 				pcall(function()
 					local anim = Instance.new("Animation")
 					anim.AnimationId = "rbxassetid://125750899"
 					ninjaTrack = animator:LoadAnimation(anim)
-					ninjaTrack.Priority = Enum.AnimationPriority.Core
+					ninjaTrack.Priority = Enum.AnimationPriority.Action4
 					ninjaTrack:Play()
-					ninjaTrack:AdjustSpeed(0)
+					ninjaTrack:AdjustSpeed(1)
 				end)
 			end
 		else
-			toggleBtn.Text = "Voo Rápido: OFF"
+			toggleBtn.Text = "Voo: OFF"
 			toggleBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
 
 			if bodyVelocity then
@@ -262,19 +314,10 @@ pcall(function()
 			end
 
 			if moveDirection.Magnitude > 0 then
-				-- Velocidade aumentada para 75 (voo bem rápido e ágil)
-				bodyVelocity.Velocity = moveDirection * 75
+				bodyVelocity.Velocity = moveDirection * speedVal
 				root.CFrame = CFrame.new(root.Position, root.Position + Vector3.new(camCFrame.LookVector.X, 0, camCFrame.LookVector.Z))
-				
-				if ninjaTrack then
-					ninjaTrack:AdjustSpeed(1.2)
-				end
 			else
 				bodyVelocity.Velocity = Vector3.new(0, 0, 0)
-				
-				if ninjaTrack then
-					ninjaTrack:AdjustSpeed(0)
-				end
 			end
 		end
 	end)
@@ -286,4 +329,4 @@ pcall(function()
 	loadstring(game:HttpGet("https://github.com/GodErste/Y-Core/raw/main/loader.lua"))()
 end)
 
-print("[Y Hub Alt] Voo Ninja Rápido ativado com sucesso!")
+print("[Y Hub Alt] Voo com ajuste de velocidade e pose fixa ativado!")
