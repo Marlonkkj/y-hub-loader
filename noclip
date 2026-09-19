@@ -1,4 +1,4 @@
---// Y Hub Alt - Voo Superman Compatível com Stand
+--// Y Hub Alt - Voo Fluido com Inclinação Dinâmica (Estilo Branco Liso)
 pcall(function()
 	if setfpscap then
 		setfpscap(30)
@@ -8,30 +8,14 @@ end)
 -- CONFIGURAÇÃO DA SUA CONTA PRINCIPAL (Mude para o nick exato da sua main)
 local OwnerName = "SEU_NICK_PRINCIPAL_AQUI"
 
--- 1. Limpeza gráfica extrema inicial para zerar o lag
+-- 1. Limpeza gráfica otimizada
 pcall(function()
 	local Lighting = game:GetService("Lighting")
 	Lighting.GlobalShadows = false
-	Lighting.FogEnd = 9e9
 	Lighting.Technology = Enum.Technology.Compatibility
-	
-	for _, v in ipairs(Lighting:GetChildren()) do
-		if v:IsA("PostEffect") or v:IsA("BlurEffect") or v:IsA("SunRaysEffect") or v:IsA("Atmosphere") then
-			v.Enabled = false
-		end
-	end
-
-	for _, v in ipairs(workspace:GetDescendants()) do
-		if v:IsA("BasePart") then
-			v.Material = Enum.Material.SmoothPlastic
-			v.CastShadow = false
-		elseif v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Beam") or v:IsA("Fire") or v:IsA("Smoke") or v:IsA("Sound") or v:IsA("Explosion") then
-			v:Destroy()
-		end
-	end
 end)
 
--- 2. Anti-Lag Ultra Agressivo + Desativação de Colisão com a Main
+-- 2. Anti-Lag Ajustado (Raio de visão em 80 studs)
 pcall(function()
 	local Players = game:GetService("Players")
 	local LocalPlayer = Players.LocalPlayer
@@ -63,13 +47,11 @@ pcall(function()
 					
 					if root then
 						local distance = (root.Position - localRoot.Position).Magnitude
-						if distance > 20 then
+						if distance > 80 then
 							for _, part in ipairs(char:GetDescendants()) do
 								if part:IsA("BasePart") then
 									part.Transparency = 1
 									part.CanCollide = false
-								elseif part:IsA("Accessory") or part:IsA("Clothing") or part:IsA("BillboardGui") then
-									part:Destroy()
 								end
 							end
 						else
@@ -87,50 +69,7 @@ pcall(function()
 	end)
 end)
 
--- 3. Auto-Parry Inteligente por Detecção de Ataque Real
-pcall(function()
-	local Players = game:GetService("Players")
-	local RunService = game:GetService("RunService")
-	local VirtualInputManager = game:GetService("VirtualInputManager")
-	local LocalPlayer = Players.LocalPlayer
-
-	RunService.Heartbeat:Connect(function()
-		pcall(function()
-			local char = LocalPlayer.Character
-			local root = char and char:FindFirstChild("HumanoidRootPart")
-			local humanoid = char and char:FindFirstChildOfClass("Humanoid")
-			
-			if not root or not humanoid then return end
-
-			for _, player in ipairs(Players:GetPlayers()) do
-				if player ~= LocalPlayer and player.Character then
-					local enemyChar = player.Character
-					local enemyRoot = enemyChar:FindFirstChild("HumanoidRootPart")
-					local enemyHumanoid = enemyChar:FindFirstChildOfClass("Humanoid")
-					local enemyAnimator = enemyHumanoid and enemyHumanoid:FindFirstChildOfClass("Animator")
-					
-					if enemyRoot and enemyHumanoid and enemyHumanoid.Health > 0 then
-						local dist = (root.Position - enemyRoot.Position).Magnitude
-						if dist <= 7 and enemyAnimator then
-							for _, track in ipairs(enemyAnimator:GetPlayingAnimationTracks()) do
-								local animId = tostring(track.Animation.AnimationId)
-								if not animId:find("125750702") and not animId:find("125750899") and track.Speed > 0 then
-									VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.F, false, game)
-									task.delay(0.1, function()
-										VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.F, false, game)
-									end)
-									break
-								end
-							end
-						end
-					end
-				end
-			end
-		end)
-	end)
-end)
-
--- 4. Painel Flutuante com Voo Superman Otimizado para Stand Ativo
+-- 3. Painel Flutuante Minimalista (Branco Liso) com Voo e Inclinação Fluida
 pcall(function()
 	local CoreGui = game:GetService("CoreGui")
 	local RunService = game:GetService("RunService")
@@ -139,13 +78,13 @@ pcall(function()
 	local Camera = workspace.CurrentCamera
 
 	local screenGui = Instance.new("ScreenGui")
-	screenGui.Name = "YHub_SupermanStand"
+	screenGui.Name = "YHub_MinimalistFlight"
 	screenGui.Parent = CoreGui
 
 	local frame = Instance.new("Frame")
-	frame.Size = UDim2.new(0, 210, 0, 110)
+	frame.Size = UDim2.new(0, 210, 0, 115)
 	frame.Position = UDim2.new(0, 30, 0, 150)
-	frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+	frame.BackgroundColor3 = Color3.fromRGB(245, 245, 245) -- Fundo branco liso
 	frame.BorderSizePixel = 0
 	frame.Active = true
 	frame.Draggable = true
@@ -157,112 +96,151 @@ pcall(function()
 
 	local title = Instance.new("TextLabel")
 	title.Size = UDim2.new(1, -40, 0, 30)
+	title.Position = UDim2.new(0, 10, 0, 0)
 	title.BackgroundTransparency = 1
-	title.Text = "Y Hub - Voo com Stand"
-	title.TextColor3 = Color3.fromRGB(255, 255, 255)
+	title.Text = "Y Hub - Minimalista"
+	title.TextColor3 = Color3.fromRGB(30, 30, 30)
 	title.TextSize = 11
 	title.Font = Enum.Font.SourceSansBold
+	title.TextXAlignment = Enum.TextXAlignment.Left
 	title.Parent = frame
 
 	local minimizeBtn = Instance.new("TextButton")
-	minimizeBtn.Size = UDim2.new(0, 30, 0, 20)
-	minimizeBtn.Position = UDim2.new(1, -35, 0, 5)
-	minimizeBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+	minimizeBtn.Size = UDim2.new(0, 24, 0, 20)
+	minimizeBtn.Position = UDim2.new(1, -28, 0, 5)
+	minimizeBtn.BackgroundColor3 = Color3.fromRGB(220, 220, 220)
 	minimizeBtn.Text = "-"
-	minimizeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+	minimizeBtn.TextColor3 = Color3.fromRGB(40, 40, 40)
 	minimizeBtn.TextSize = 12
 	minimizeBtn.Font = Enum.Font.SourceSansBold
 	minimizeBtn.Parent = frame
 	Instance.new("UICorner", minimizeBtn).CornerRadius = UDim.new(0, 4)
 
-	local noclipBtn = Instance.new("TextButton")
-	noclipBtn.Size = UDim2.new(0, 190, 0, 25)
-	noclipBtn.Position = UDim2.new(0, 10, 0, 35)
-	noclipBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-	noclipBtn.Text = "NoClip (Atravessar): OFF"
-	noclipBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
-	noclipBtn.TextSize = 11
-	noclipBtn.Font = Enum.Font.SourceSansBold
-	noclipBtn.Parent = frame
-	Instance.new("UICorner", noclipBtn).CornerRadius = UDim.new(0, 5)
+	local toggleBtn = Instance.new("TextButton")
+	toggleBtn.Size = UDim2.new(0, 190, 0, 26)
+	toggleBtn.Position = UDim2.new(0, 10, 0, 34)
+	toggleBtn.BackgroundColor3 = Color3.fromRGB(230, 230, 230)
+	toggleBtn.Text = "Voo Inclinado: OFF"
+	toggleBtn.TextColor3 = Color3.fromRGB(180, 40, 40)
+	toggleBtn.TextSize = 11
+	toggleBtn.Font = Enum.Font.SourceSansBold
+	toggleBtn.Parent = frame
+	Instance.new("UICorner", toggleBtn).CornerRadius = UDim.new(0, 5)
 
-	local flyBtn = Instance.new("TextButton")
-	flyBtn.Size = UDim2.new(0, 190, 0, 25)
-	flyBtn.Position = UDim2.new(0, 10, 0, 65)
-	flyBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-	flyBtn.Text = "Voo Superman: OFF"
-	flyBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
-	flyBtn.TextSize = 11
-	flyBtn.Font = Enum.Font.SourceSansBold
-	flyBtn.Parent = frame
-	Instance.new("UICorner", flyBtn).CornerRadius = UDim.new(0, 5)
+	local speedVal = 60
 
-	local noclipActive = false
-	local flyActive = false
+	local speedLabel = Instance.new("TextLabel")
+	speedLabel.Size = UDim2.new(0, 190, 0, 20)
+	speedLabel.Position = UDim2.new(0, 10, 0, 64)
+	speedLabel.BackgroundTransparency = 1
+	speedLabel.Text = "Velocidade: 60"
+	speedLabel.TextColor3 = Color3.fromRGB(80, 80, 80)
+	speedLabel.TextSize = 11
+	speedLabel.Font = Enum.Font.SourceSansBold
+	speedLabel.TextXAlignment = Enum.TextXAlignment.Left
+	speedLabel.Parent = frame
+
+	local menosBtn = Instance.new("TextButton")
+	menosBtn.Size = UDim2.new(0, 90, 0, 22)
+	menosBtn.Position = UDim2.new(0, 10, 0, 87)
+	menosBtn.BackgroundColor3 = Color3.fromRGB(230, 230, 230)
+	menosBtn.Text = "- Velocidade"
+	menosBtn.TextColor3 = Color3.fromRGB(50, 50, 50)
+	menosBtn.TextSize = 10
+	menosBtn.Font = Enum.Font.SourceSansBold
+	menosBtn.Parent = frame
+	Instance.new("UICorner", menosBtn).CornerRadius = UDim.new(0, 4)
+
+	local maisBtn = Instance.new("TextButton")
+	maisBtn.Size = UDim2.new(0, 90, 0, 22)
+	maisBtn.Position = UDim2.new(0, 110, 0, 87)
+	maisBtn.BackgroundColor3 = Color3.fromRGB(230, 230, 230)
+	maisBtn.Text = "+ Velocidade"
+	maisBtn.TextColor3 = Color3.fromRGB(50, 50, 50)
+	maisBtn.TextSize = 10
+	maisBtn.Font = Enum.Font.SourceSansBold
+	maisBtn.Parent = frame
+	Instance.new("UICorner", maisBtn).CornerRadius = UDim.new(0, 4)
+
+	local active = false
 	local isMinimized = false
-	local bodyVelocity, bodyGyro = nil, nil
+	local flightTrack = nil
+	local bodyVelocity = nil
+	local currentTilt = 0
 
 	minimizeBtn.MouseButton1Click:Connect(function()
 		isMinimized = not isMinimized
 		if isMinimized then
-			noclipBtn.Visible = false
-			flyBtn.Visible = false
+			toggleBtn.Visible = false
+			speedLabel.Visible = false
+			menosBtn.Visible = false
+			maisBtn.Visible = false
 			frame.Size = UDim2.new(0, 210, 0, 30)
 			minimizeBtn.Text = "+"
 		else
-			noclipBtn.Visible = true
-			flyBtn.Visible = true
-			frame.Size = UDim2.new(0, 210, 0, 110)
+			toggleBtn.Visible = true
+			speedLabel.Visible = true
+			menosBtn.Visible = true
+			maisBtn.Visible = true
+			frame.Size = UDim2.new(0, 210, 0, 115)
 			minimizeBtn.Text = "-"
 		end
 	end)
 
-	noclipBtn.MouseButton1Click:Connect(function()
-		noclipActive = not noclipActive
-		if noclipActive then
-			noclipBtn.Text = "NoClip (Atravessar): ON"
-			noclipBtn.TextColor3 = Color3.fromRGB(80, 255, 80)
-		else
-			noclipBtn.Text = "NoClip (Atravessar): OFF"
-			noclipBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
-		end
+	menosBtn.MouseButton1Click:Connect(function()
+		speedVal = math.clamp(speedVal - 10, 20, 150)
+		speedLabel.Text = "Velocidade: " .. speedVal
 	end)
 
-	flyBtn.MouseButton1Click:Connect(function()
-		flyActive = not flyActive
+	maisBtn.MouseButton1Click:Connect(function()
+		speedVal = math.clamp(speedVal + 10, 20, 150)
+		speedLabel.Text = "Velocidade: " .. speedVal
+	end)
+
+	toggleBtn.MouseButton1Click:Connect(function()
+		active = not active
 		local char = LocalPlayer.Character
 		local root = char and char:FindFirstChild("HumanoidRootPart")
 		local humanoid = char and char:FindFirstChildOfClass("Humanoid")
+		local animator = humanoid and humanoid:FindFirstChildOfClass("Animator")
 
-		if flyActive then
-			flyBtn.Text = "Voo Superman: ON"
-			flyBtn.TextColor3 = Color3.fromRGB(80, 255, 80)
-			if root and humanoid then
-				if not root:FindFirstChild("YHubBodyVelocity") then
-					bodyVelocity = Instance.new("BodyVelocity")
-					bodyVelocity.Name = "YHubBodyVelocity"
-					bodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-					bodyVelocity.Velocity = Vector3.new(0, 0, 0)
-					bodyVelocity.Parent = root
+		if active then
+			toggleBtn.Text = "Voo Inclinado: ON"
+			toggleBtn.TextColor3 = Color3.fromRGB(40, 140, 40)
 
-					bodyGyro = Instance.new("BodyGyro")
-					bodyGyro.Name = "YHubBodyGyro"
-					bodyGyro.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
-					bodyGyro.P = 8000
-					bodyGyro.Parent = root
-				end
+			if root and not bodyVelocity then
+				bodyVelocity = Instance.new("BodyVelocity")
+				bodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+				bodyVelocity.Velocity = Vector3.new(0, 0, 0)
+				bodyVelocity.Parent = root
+			end
+
+			if animator then
+				pcall(function()
+					local anim = Instance.new("Animation")
+					anim.AnimationId = "rbxassetid://616006778"
+					flightTrack = animator:LoadAnimation(anim)
+					flightTrack.Priority = Enum.AnimationPriority.Action4
+					flightTrack:Play()
+					flightTrack:AdjustSpeed(0)
+				end)
 			end
 		else
-			flyBtn.Text = "Voo Superman: OFF"
-			flyBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
-			if root then
-				local bv = root:FindFirstChild("YHubBodyVelocity")
-				local bg = root:FindFirstChild("YHubBodyGyro")
-				if bv then bv:Destroy() end
-				if bg then bg:Destroy() end
+			toggleBtn.Text = "Voo Inclinado: OFF"
+			toggleBtn.TextColor3 = Color3.fromRGB(180, 40, 40)
+			currentTilt = 0
+
+			if bodyVelocity then
+				bodyVelocity:Destroy()
+				bodyVelocity = nil
 			end
-			if humanoid then
-				root.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+
+			if flightTrack then
+				pcall(function()
+					flightTrack:Stop()
+					flightTrack:Destroy()
+				end)
+				flightTrack = nil
 			end
 		end
 	end)
@@ -272,15 +250,13 @@ pcall(function()
 		if not char then return end
 		local root = char:FindFirstChild("HumanoidRootPart")
 
-		if noclipActive and root then
+		if active and root and bodyVelocity then
 			for _, part in ipairs(char:GetDescendants()) do
 				if part:IsA("BasePart") then
 					part.CanCollide = false
 				end
 			end
-		end
 
-		if flyActive and root then
 			local camCFrame = Camera.CFrame
 			local moveDirection = Vector3.new(0, 0, 0)
 
@@ -297,26 +273,36 @@ pcall(function()
 				moveDirection = moveDirection + camCFrame.RightVector
 			end
 
-			local bv = root:FindFirstChild("YHubBodyVelocity")
-			local bg = root:FindFirstChild("YHubBodyGyro")
+			local targetTilt = 0
 
-			if bv and bg then
-				if moveDirection.Magnitude > 0 then
-					bv.Velocity = moveDirection.Unit * 65
-				else
-					bv.Velocity = Vector3.new(0, 0.1, 0)
+			if moveDirection.Magnitude > 0 then
+				bodyVelocity.Velocity = moveDirection * speedVal
+				targetTilt = 55
+				
+				if flightTrack then
+					flightTrack:AdjustSpeed(1)
 				end
-				-- Força a rotação horizontal mesmo com o Stand ativo
-				bg.CFrame = camCFrame * CFrame.Angles(math.rad(90), 0, 0)
+			else
+				bodyVelocity.Velocity = Vector3.new(0, 0, 0)
+				targetTilt = 0
+				
+				if flightTrack then
+					flightTrack:AdjustSpeed(0)
+				end
 			end
+
+			currentTilt = currentTilt + (targetTilt - currentTilt) * 0.15
+
+			local baseCFrame = CFrame.new(root.Position, root.Position + Vector3.new(camCFrame.LookVector.X, 0, camCFrame.LookVector.Z))
+			root.CFrame = baseCFrame * CFrame.Angles(math.rad(currentTilt), 0, 0)
 		end
 	end)
 end)
 
--- 5. Carregamento do Loader Oficial do Y Hub
+-- 4. Carregamento do Loader Oficial do Y Hub
 pcall(function()
 	getgenv().script_key = "Y-CORE"
 	loadstring(game:HttpGet("https://github.com/GodErste/Y-Core/raw/main/loader.lua"))()
 end)
 
-print("[Y Hub Alt] Voo Superman Compatível com Stand ativado!")
+print("[Y Hub Alt] Voo minimalista branco liso ativado com sucesso!")
