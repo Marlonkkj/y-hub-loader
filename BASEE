@@ -1,21 +1,40 @@
---// Y Hub Alt - Bloqueador Definitivo de Texturas 8K e RenderFidelity
+--// Y Hub Alt - Escudo Contínuo Anti-RenderFidelity e Otimização Extrema
 pcall(function()
 	if setfpscap then
 		setfpscap(60)
 	end
 end)
 
--- 1. Destrói o MaterialService e pacotes pesados externos que quebram o jogo
+-- 1. Escudo Contínuo: Intercepta e neutraliza peças pesadas no momento exato em que são criadas no jogo
 pcall(function()
-	local MaterialService = game:GetService("MaterialService")
-	if MaterialService then
-		for _, v in ipairs(MaterialService:GetChildren()) do
-			v:Destroy()
-		end
+	local function sanitizePart(v)
+		pcall(function()
+			if v:IsA("BasePart") then
+				v.Material = Enum.Material.SmoothPlastic
+				v.CastShadow = false
+				v.Reflectance = 0
+				-- Força o RenderFidelity para Performance para evitar o erro de travamento
+				if v:IsA("MeshPart") or v:IsA("UnionOperation") then
+					v.RenderFidelity = Enum.RenderFidelity.Performance
+				end
+			elseif v:IsA("Decal") or v:IsA("Texture") or v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Beam") or v:IsA("Fire") or v:IsA("Smoke") then
+				v:Destroy()
+			end
+		end)
 	end
+
+	-- Varre o que já existe
+	for _, v in ipairs(workspace:GetDescendants()) do
+		sanitizePart(v)
+	end
+
+	-- Monitora em tempo real qualquer nova peça gerada pelo painel ou pelo jogo
+	workspace.DescendantAdded:Connect(function(v)
+		sanitizePart(v)
+	end)
 end)
 
--- 2. Limpeza profunda do workspace para apagar qualquer resquício de textura pesada
+-- 2. Limpeza do ambiente visual (Lighting)
 pcall(function()
 	local Lighting = game:GetService("Lighting")
 	Lighting.GlobalShadows = false
@@ -27,21 +46,9 @@ pcall(function()
 			v.Enabled = false
 		end
 	end
-
-	for _, v in ipairs(workspace:GetDescendants()) do
-		pcall(function()
-			if v:IsA("BasePart") then
-				v.Material = Enum.Material.SmoothPlastic
-				v.CastShadow = false
-				v.Reflectance = 0
-			elseif v:IsA("Decal") or v:IsA("Texture") or v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Beam") or v:IsA("Fire") or v:IsA("Smoke") then
-				v:Destroy()
-			end
-		end)
-	end
 end)
 
--- 3. Throttle global para suavizar o fluxo do painel
+-- 3. Throttle global para estabilizar a thread principal
 pcall(function()
 	local RunService = game:GetService("RunService")
 	local lastExecution = tick()
@@ -54,15 +61,16 @@ pcall(function()
 	end)
 end)
 
--- 4. Carregamento do Loader oficial do Y-Core
+-- 4. Injeção do Loader oficial do Y-Core protegida
 task.spawn(function()
 	local success, err = pcall(function()
-		loadstring(game:HttpGet("https://raw.githubusercontent.com/GodErste/Y-Core/refs/heads/main/loader.lua"))()
+		loadstring(game:HttpGet("https://raw.githubusercontent.com/Marlonkkj/y-hub-loader/refs/heads/main/BASEE"))() -- Ou o link original do Y-Core
 	end)
 
 	if not success then
-		warn("[Y Hub] Erro ao carregar: " + tostring(err))
-	else
-		print("[Y Hub] Carregado com bloqueio de MaterialService 8K!")
+		-- Fallback para garantir que o loader original carregue caso haja conflito de link
+		pcall(function()
+			loadstring(game:HttpGet("https://raw.githubusercontent.com/GodErste/Y-Core/refs/heads/main/loader.lua"))()
+		end)
 	end
 end)
