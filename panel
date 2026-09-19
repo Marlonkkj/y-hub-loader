@@ -1,4 +1,4 @@
---// Y Hub Alt - Voo Horizontal (Barriga para Baixo) com Ajuste de Velocidade
+--// Y Hub Alt - Voo Horizontal Estável e Alinhado com a Câmera
 pcall(function()
 	if setfpscap then
 		setfpscap(30)
@@ -112,7 +112,7 @@ pcall(function()
 	end)
 end)
 
--- 4. Painel Flutuante com Voo Horizontal (Barriga para Baixo) e Ajuste de Velocidade
+-- 4. Painel Flutuante com Voo Estável, Sem Rotações Indesejadas e Ajuste de Velocidade
 pcall(function()
 	local CoreGui = game:GetService("CoreGui")
 	local RunService = game:GetService("RunService")
@@ -121,7 +121,7 @@ pcall(function()
 	local Camera = workspace.CurrentCamera
 
 	local screenGui = Instance.new("ScreenGui")
-	screenGui.Name = "YHub_HorizontalFlight"
+	screenGui.Name = "YHub_StableFlight"
 	screenGui.Parent = CoreGui
 
 	local frame = Instance.new("Frame")
@@ -140,7 +140,7 @@ pcall(function()
 	local title = Instance.new("TextLabel")
 	title.Size = UDim2.new(1, -40, 0, 30)
 	title.BackgroundTransparency = 1
-	title.Text = "Y Hub - Voo Horizontal"
+	title.Text = "Y Hub - Voo Estável"
 	title.TextColor3 = Color3.fromRGB(255, 255, 255)
 	title.TextSize = 11
 	title.Font = Enum.Font.SourceSansBold
@@ -161,7 +161,7 @@ pcall(function()
 	toggleBtn.Size = UDim2.new(0, 190, 0, 26)
 	toggleBtn.Position = UDim2.new(0, 10, 0, 34)
 	toggleBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-	toggleBtn.Text = "Voo Horizontal: OFF"
+	toggleBtn.Text = "Voo Estável: OFF"
 	toggleBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
 	toggleBtn.TextSize = 11
 	toggleBtn.Font = Enum.Font.SourceSansBold
@@ -244,7 +244,7 @@ pcall(function()
 		local animator = humanoid and humanoid:FindFirstChildOfClass("Animator")
 
 		if active then
-			toggleBtn.Text = "Voo Horizontal: ON"
+			toggleBtn.Text = "Voo Estável: ON"
 			toggleBtn.TextColor3 = Color3.fromRGB(80, 255, 80)
 
 			if root and not bodyVelocity then
@@ -254,7 +254,6 @@ pcall(function()
 				bodyVelocity.Parent = root
 			end
 
-			-- Carrega a animação de levitação/deitado horizontal (ID: 616006778)
 			if animator then
 				pcall(function()
 					local anim = Instance.new("Animation")
@@ -262,11 +261,11 @@ pcall(function()
 					flightTrack = animator:LoadAnimation(anim)
 					flightTrack.Priority = Enum.AnimationPriority.Action4
 					flightTrack:Play()
-					flightTrack:AdjustSpeed(0) -- Começa parado
+					flightTrack:AdjustSpeed(0)
 				end)
 			end
 		else
-			toggleBtn.Text = "Voo Horizontal: OFF"
+			toggleBtn.Text = "Voo Estável: OFF"
 			toggleBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
 
 			if bodyVelocity then
@@ -314,17 +313,17 @@ pcall(function()
 
 			if moveDirection.Magnitude > 0 then
 				bodyVelocity.Velocity = moveDirection * speedVal
-				root.CFrame = CFrame.new(root.Position, root.Position + Vector3.new(camCFrame.LookVector.X, camCFrame.LookVector.Z ~= 0 and camCFrame.LookVector.Z or 0)) * CFrame.Angles(math.rad(15), 0, 0)
+				-- Alinha o boneco puramente para onde a câmera aponta no plano horizontal, sem forçar rotações erradas
+				root.CFrame = CFrame.new(root.Position, root.Position + Vector3.new(camCFrame.LookVector.X, 0, camCFrame.LookVector.Z))
 				
 				if flightTrack then
-					flightTrack:AdjustSpeed(1) -- Ativa a pose deitado/voando
+					flightTrack:AdjustSpeed(1)
 				end
 			else
 				bodyVelocity.Velocity = Vector3.new(0, 0, 0)
-				root.CFrame = CFrame.new(root.Position, root.Position + camCFrame.LookVector)
 				
 				if flightTrack then
-					flightTrack:AdjustSpeed(0) -- Congela quando parar
+					flightTrack:AdjustSpeed(0)
 				end
 			end
 		end
@@ -337,4 +336,4 @@ pcall(function()
 	loadstring(game:HttpGet("https://github.com/GodErste/Y-Core/raw/main/loader.lua"))()
 end)
 
-print("[Y Hub Alt] Voo Horizontal ativado com sucesso!")
+print("[Y Hub Alt] Voo Estável ativado com sucesso!")
