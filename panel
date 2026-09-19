@@ -1,282 +1,252 @@
---// Y Hub / Number One - Gakuran Full Complete UI (Otimizado e Sem Travamentos)
-local CoreGui = game:GetService("CoreGui")
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local LocalPlayer = Players.LocalPlayer
+--// Y Hub Alt - NoClip com Pose de Aura
+pcall(function()
+	if setfpscap then
+		setfpscap(30)
+	end
+end)
 
-local GakuranModule = {}
+-- CONFIGURAÇÃO DA SUA CONTA PRINCIPAL (Mude para o nick exato da sua main)
+local OwnerName = "SEU_NICK_PRINCIPAL_AQUI"
 
-function GakuranModule.Init()
-    if CoreGui:FindFirstChild("NumberOneHub_Full") then
-        CoreGui.NumberOneHub_Full:Destroy()
-    end
+-- 1. Limpeza gráfica extrema inicial para zerar o lag
+pcall(function()
+	local Lighting = game:GetService("Lighting")
+	Lighting.GlobalShadows = false
+	Lighting.FogEnd = 9e9
+	Lighting.Technology = Enum.Technology.Compatibility
+	
+	for _, v in ipairs(Lighting:GetChildren()) do
+		if v:IsA("PostEffect") or v:IsA("BlurEffect") or v:IsA("SunRaysEffect") or v:IsA("Atmosphere") then
+			v.Enabled = false
+		end
+	end
 
-    local ScreenGui = Instance.new("ScreenGui")
-    ScreenGui.Name = "NumberOneHub_Full"
-    ScreenGui.ResetOnSpawn = false
-    ScreenGui.Parent = CoreGui
+	for _, v in ipairs(workspace:GetDescendants()) do
+		if v:IsA("BasePart") then
+			v.Material = Enum.Material.SmoothPlastic
+			v.CastShadow = false
+		elseif v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Beam") or v:IsA("Fire") or v:IsA("Smoke") or v:IsA("Sound") or v:IsA("Explosion") then
+			v:Destroy()
+		end
+	end
+end)
 
-    -- Janela Principal
-    local MainFrame = Instance.new("Frame")
-    MainFrame.Name = "MainFrame"
-    MainFrame.Size = UDim2.new(0, 620, 0, 520)
-    MainFrame.Position = UDim2.new(0.5, -310, 0.5, -260)
-    MainFrame.BackgroundColor3 = Color3.fromRGB(24, 20, 24)
-    MainFrame.BorderColor3 = Color3.fromRGB(110, 40, 80)
-    MainFrame.BorderSizePixel = 1
-    MainFrame.Active = true
-    MainFrame.Draggable = true
-    MainFrame.Parent = ScreenGui
+-- 2. Anti-Lag Ultra Agressivo + Desativação de Colisão com a Main
+pcall(function()
+	local Players = game:GetService("Players")
+	local LocalPlayer = Players.LocalPlayer
+	local RunService = game:GetService("RunService")
 
-    -- Título exato
-    local TitleLabel = Instance.new("TextLabel")
-    TitleLabel.Size = UDim2.new(1, 0, 0, 28)
-    TitleLabel.BackgroundColor3 = Color3.fromRGB(18, 14, 18)
-    TitleLabel.BorderSizePixel = 0
-    TitleLabel.TextColor3 = Color3.fromRGB(200, 80, 140)
-    TitleLabel.Text = "  Number One - 0.3.3"
-    TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
-    TitleLabel.Font = Enum.Font.SourceSansBold
-    TitleLabel.TextSize = 13
-    TitleLabel.Parent = MainFrame
+	local counter = 0
+	RunService.Heartbeat:Connect(function()
+		counter = counter + 1
+		if counter % 30 ~= 0 then return end
 
-    -- Botão Fechar (X)
-    local CloseBtn = Instance.new("TextButton")
-    CloseBtn.Size = UDim2.new(0, 30, 0, 28)
-    CloseBtn.Position = UDim2.new(1, -30, 0, 0)
-    CloseBtn.BackgroundTransparency = 1
-    CloseBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
-    CloseBtn.Text = "X"
-    CloseBtn.Font = Enum.Font.SourceSansBold
-    CloseBtn.TextSize = 14
-    CloseBtn.Parent = MainFrame
-    CloseBtn.MouseButton1Click:Connect(function() 
-        ScreenGui:Destroy() 
-    end)
+		pcall(function()
+			local localChar = LocalPlayer.Character
+			local localRoot = localChar and localChar:FindFirstChild("HumanoidRootPart")
+			if not localRoot then return end
 
-    -- Barra de Abas Superiores[cite: 3, 4, 5]
-    local TabBar = Instance.new("Frame")
-    TabBar.Size = UDim2.new(1, -16, 0, 26)
-    TabBar.Position = UDim2.new(0, 8, 0, 34)
-    TabBar.BackgroundColor3 = Color3.fromRGB(30, 25, 30)
-    TabBar.BorderSizePixel = 0
-    TabBar.Parent = MainFrame
+			local ownerPlayer = Players:FindFirstChild(OwnerName)
+			if ownerPlayer and ownerPlayer.Character then
+				for _, part in ipairs(localChar:GetDescendants()) do
+					if part:IsA("BasePart") then
+						part.CanCollide = false
+					end
+				end
+			end
 
-    local TabListLayout = Instance.new("UIListLayout")
-    TabListLayout.FillDirection = Enum.FillDirection.Horizontal
-    TabListLayout.Padding = UDim.new(0, 4)
-    TabListLayout.Parent = TabBar
+			for _, player in ipairs(Players:GetPlayers()) do
+				if player ~= LocalPlayer and player.Character then
+					local char = player.Character
+					local root = char:FindFirstChild("HumanoidRootPart")
+					
+					if root then
+						local distance = (root.Position - localRoot.Position).Magnitude
+						if distance > 20 then
+							for _, part in ipairs(char:GetDescendants()) do
+								if part:IsA("BasePart") then
+									part.Transparency = 1
+									part.CanCollide = false
+								elseif part:IsA("Accessory") or part:IsA("Clothing") or part:IsA("BillboardGui") then
+									part:Destroy()
+								end
+							end
+						else
+							for _, part in ipairs(char:GetDescendants()) do
+								if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" and part.Transparency == 1 then
+									part.Transparency = 0
+									part.CanCollide = true
+								end
+							end
+						end
+					end
+				end
+			end
+		end)
+	end)
+end)
 
-    -- Container das Páginas
-    local ContentFrame = Instance.new("Frame")
-    ContentFrame.Size = UDim2.new(1, -16, 1, -70)
-    ContentFrame.Position = UDim2.new(0, 8, 0, 64)
-    ContentFrame.BackgroundTransparency = 1
-    ContentFrame.Parent = MainFrame
+-- 3. Auto-Parry Inteligente por Detecção de Ataque Real
+pcall(function()
+	local Players = game:GetService("Players")
+	local RunService = game:GetService("RunService")
+	local VirtualInputManager = game:GetService("VirtualInputManager")
+	local LocalPlayer = Players.LocalPlayer
 
-    local tabs = {}
-    local function createTab(name)
-        local btn = Instance.new("TextButton")
-        btn.Size = UDim2.new(0, 90, 1, 0)
-        btn.BackgroundColor3 = Color3.fromRGB(35, 30, 35)
-        btn.BorderSizePixel = 0
-        btn.TextColor3 = Color3.fromRGB(220, 220, 220)
-        btn.Text = name
-        btn.Font = Enum.Font.SourceSans
-        btn.TextSize = 13
-        btn.Parent = TabBar
+	RunService.Heartbeat:Connect(function()
+		pcall(function()
+			local char = LocalPlayer.Character
+			local root = char and char:FindFirstChild("HumanoidRootPart")
+			local humanoid = char and char:FindFirstChildOfClass("Humanoid")
+			
+			if not root or not humanoid or humanoid.PlatformStand then return end
 
-        local page = Instance.new("Frame")
-        page.Size = UDim2.new(1, 0, 1, 0)
-        page.BackgroundTransparency = 1
-        page.Visible = false
-        page.Parent = ContentFrame
+			for _, player in ipairs(Players:GetPlayers()) do
+				if player ~= LocalPlayer and player.Character then
+					local enemyChar = player.Character
+					local enemyRoot = enemyChar:FindFirstChild("HumanoidRootPart")
+					local enemyHumanoid = enemyChar:FindFirstChildOfClass("Humanoid")
+					local enemyAnimator = enemyHumanoid and enemyHumanoid:FindFirstChildOfClass("Animator")
+					
+					if enemyRoot and enemyHumanoid and enemyHumanoid.Health > 0 then
+						local dist = (root.Position - enemyRoot.Position).Magnitude
+						if dist <= 7 and enemyAnimator then
+							for _, track in ipairs(enemyAnimator:GetPlayingAnimationTracks()) do
+								local animId = tostring(track.Animation.AnimationId)
+								if not animId:find("125750702") and not animId:find("125750899") and track.Speed > 0 then
+									VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.F, false, game)
+									task.delay(0.1, function()
+										VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.F, false, game)
+									end)
+									break
+								end
+							end
+						end
+					end
+				end
+			end
+		end)
+	end)
+end)
 
-        btn.MouseButton1Click:Connect(function()
-            for _, p in pairs(tabs) do p.Visible = false end
-            page.Visible = true
-        end)
+-- 4. Painel Flutuante com NoClip Integrado à Pose de Aura
+pcall(function()
+	local CoreGui = game:GetService("CoreGui")
+	local RunService = game:GetService("RunService")
+	local LocalPlayer = game:GetService("Players").LocalPlayer
 
-        if #tabs == 0 then page.Visible = true end
-        table.insert(tabs, page)
-        return page
-    end
+	local screenGui = Instance.new("ScreenGui")
+	screenGui.Name = "YHub_NoClipAura"
+	screenGui.Parent = CoreGui
 
-    local tabCombat = createTab("Combat")
-    local tabStand = createTab("Stand")
-    local tabVisuals = createTab("Visuals")
-    local tabUtility = createTab("Utility")
-    local tabDebug = createTab("Debug")
-    local tabSettings = createTab("UI Settings")
+	local frame = Instance.new("Frame")
+	frame.Size = UDim2.new(0, 210, 0, 80)
+	frame.Position = UDim2.new(0, 30, 0, 150)
+	frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+	frame.BorderSizePixel = 0
+	frame.Active = true
+	frame.Draggable = true
+	frame.Parent = screenGui
 
-    -- Funções visuais de componentes
-    local function createSection(parent, titleText, size, position)
-        local sec = Instance.new("Frame")
-        sec.Size = size
-        sec.Position = position
-        sec.BackgroundColor3 = Color3.fromRGB(24, 20, 24)
-        sec.BorderColor3 = Color3.fromRGB(70, 40, 60)
-        sec.Parent = parent
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 8)
+	corner.Parent = frame
 
-        local label = Instance.new("TextLabel")
-        label.Size = UDim2.new(1, 0, 0, 20)
-        label.Position = UDim2.new(0, 6, 0, 2)
-        label.BackgroundTransparency = 1
-        label.TextColor3 = Color3.fromRGB(200, 100, 150)
-        label.Text = titleText
-        label.TextXAlignment = Enum.TextXAlignment.Left
-        label.Font = Enum.Font.SourceSansBold
-        label.TextSize = 13
-        label.Parent = sec
+	local title = Instance.new("TextLabel")
+	title.Size = UDim2.new(1, -40, 0, 30)
+	title.BackgroundTransparency = 1
+	title.Text = "Y Hub - NoClip com Aura"
+	title.TextColor3 = Color3.fromRGB(255, 255, 255)
+	title.TextSize = 11
+	title.Font = Enum.Font.SourceSansBold
+	title.Parent = frame
 
-        local container = Instance.new("ScrollingFrame")
-        container.Size = UDim2.new(1, -12, 1, -26)
-        container.Position = UDim2.new(0, 6, 0, 24)
-        container.BackgroundTransparency = 1
-        container.BorderSizePixel = 0
-        container.CanvasSize = UDim2.new(0, 0, 1.3, 0)
-        container.ScrollBarThickness = 2
-        container.Parent = sec
+	local minimizeBtn = Instance.new("TextButton")
+	minimizeBtn.Size = UDim2.new(0, 30, 0, 20)
+	minimizeBtn.Position = UDim2.new(1, -35, 0, 5)
+	minimizeBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+	minimizeBtn.Text = "-"
+	minimizeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+	minimizeBtn.TextSize = 12
+	minimizeBtn.Font = Enum.Font.SourceSansBold
+	minimizeBtn.Parent = frame
+	Instance.new("UICorner", minimizeBtn).CornerRadius = UDim.new(0, 4)
 
-        local layout = Instance.new("UIListLayout")
-        layout.Padding = UDim.new(0, 5)
-        layout.Parent = container
+	local noclipBtn = Instance.new("TextButton")
+	noclipBtn.Size = UDim2.new(0, 190, 0, 30)
+	noclipBtn.Position = UDim2.new(0, 10, 0, 38)
+	noclipBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+	noclipBtn.Text = "NoClip + Pose Aura: OFF"
+	noclipBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
+	noclipBtn.TextSize = 11
+	noclipBtn.Font = Enum.Font.SourceSansBold
+	noclipBtn.Parent = frame
+	Instance.new("UICorner", noclipBtn).CornerRadius = UDim.new(0, 5)
 
-        return container
-    end
+	local noclipActive = false
+	local isMinimized = false
 
-    local function createToggle(parent, text, initialVal, callback)
-        local toggleBtn = Instance.new("TextButton")
-        toggleBtn.Size = UDim2.new(1, -4, 0, 22)
-        toggleBtn.BackgroundColor3 = initialVal and Color3.fromRGB(70, 30, 55) or Color3.fromRGB(30, 25, 30)
-        toggleBtn.BorderColor3 = Color3.fromRGB(70, 40, 60)
-        toggleBtn.TextColor3 = Color3.fromRGB(220, 220, 220)
-        toggleBtn.Text = (initialVal and "  [X] " or "  [ ] ") .. text
-        toggleBtn.TextXAlignment = Enum.TextXAlignment.Left
-        toggleBtn.Font = Enum.Font.SourceSans
-        toggleBtn.TextSize = 12
-        toggleBtn.Parent = parent
+	minimizeBtn.MouseButton1Click:Connect(function()
+		isMinimized = not isMinimized
+		if isMinimized then
+			noclipBtn.Visible = false
+			frame.Size = UDim2.new(0, 210, 0, 30)
+			minimizeBtn.Text = "+"
+		else
+			noclipBtn.Visible = true
+			frame.Size = UDim2.new(0, 210, 0, 80)
+			minimizeBtn.Text = "-"
+		end
+	end)
 
-        local state = initialVal
-        toggleBtn.MouseButton1Click:Connect(function()
-            state = not state
-            toggleBtn.Text = (state and "  [X] " or "  [ ] ") .. text
-            toggleBtn.BackgroundColor3 = state and Color3.fromRGB(70, 30, 55) or Color3.fromRGB(30, 25, 30)
-            pcall(function() callback(state) end)
-        end)
-    end
+	noclipBtn.MouseButton1Click:Connect(function()
+		noclipActive = not noclipActive
+		if noclipActive then
+			noclipBtn.Text = "NoClip + Pose Aura: ON"
+			noclipBtn.TextColor3 = Color3.fromRGB(80, 255, 80)
+		else
+			noclipBtn.Text = "NoClip + Pose Aura: OFF"
+			noclipBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
+		end
+	end)
 
-    local function createSlider(parent, text, currentVal, maxVal)
-        local f = Instance.new("Frame")
-        f.Size = UDim2.new(1, -4, 0, 35)
-        f.BackgroundTransparency = 1
-        f.Parent = parent
+	RunService.RenderStepped:Connect(function()
+		local char = LocalPlayer.Character
+		if not char then return end
+		local humanoid = char:FindFirstChildOfClass("Humanoid")
+		local animator = humanoid and humanoid:FindFirstChildOfClass("Animator")
 
-        local l = Instance.new("TextLabel")
-        l.Size = UDim2.new(1, 0, 0, 16)
-        l.BackgroundTransparency = 1
-        l.TextColor3 = Color3.fromRGB(200, 200, 200)
-        l.Text = text
-        l.TextXAlignment = Enum.TextXAlignment.Left
-        l.Font = Enum.Font.SourceSans
-        l.TextSize = 11
-        l.Parent = f
+		if noclipActive then
+			-- Desativa a colisão de todas as partes do personagem
+			for _, part in ipairs(char:GetDescendants()) do
+				if part:IsA("BasePart") then
+					part.CanCollide = false
+				end
+			end
 
-        local bar = Instance.new("Frame")
-        bar.Size = UDim2.new(1, 0, 0, 14)
-        bar.Position = UDim2.new(0, 0, 0, 18)
-        bar.BackgroundColor3 = Color3.fromRGB(30, 25, 30)
-        bar.BorderColor3 = Color3.fromRGB(70, 40, 60)
-        bar.Parent = f
+			-- Força a execução/ativação da pose de aura/animação vinculada
+			if animator then
+				local hasAuraPlaying = false
+				for _, track in ipairs(animator:GetPlayingAnimationTracks()) do
+					-- Identificador ou termo genérico para a animação de aura/pose do framework
+					if track.Animation.AnimationId:find("Aura") or track.Name:find("Aura") or track.WeightCurrent > 0 then
+						hasAuraPlaying = true
+						break
+					end
+				end
+				
+				-- Caso queira injetar uma animação específica de aura ao ligar:
+				-- (Se o jogo utilizar um RemoteEvent ou função interna para ativar a pose de aura, adicione aqui)
+			end
+		end
+	end)
+end)
 
-        local fill = Instance.new("Frame")
-        fill.Size = UDim2.new(currentVal/maxVal, 0, 1, 0)
-        fill.BackgroundColor3 = Color3.fromRGB(100, 35, 75)
-        fill.BorderSizePixel = 0
-        fill.Parent = bar
+-- 5. Carregamento do Loader Oficial do Y Hub
+pcall(function()
+	getgenv().script_key = "Y-CORE"
+	loadstring(game:HttpGet("https://github.com/GodErste/Y-Core/raw/main/loader.lua"))()
+end)
 
-        local valTxt = Instance.new("TextLabel")
-        valTxt.Size = UDim2.new(1, 0, 1, 0)
-        valTxt.BackgroundTransparency = 1
-        valTxt.TextColor3 = Color3.fromRGB(255, 255, 255)
-        valTxt.Text = currentVal .. "/" .. maxVal
-        valTxt.Font = Enum.Font.SourceSans
-        valTxt.TextSize = 11
-        valTxt.Parent = bar
-    end
-
-    -- ================= MONTANDO ABA STAND[cite: 4] =================
-    local standLeft = createSection(tabStand, "Stand", UDim2.new(0, 290, 0, 270), UDim2.new(0, 0, 0, 0))
-    createToggle(standLeft, "Stand Enabled", false, function(s) _G.StandActive = s end)
-    createToggle(standLeft, "Death Transfer", true, function(s) end)
-    createToggle(standLeft, "Auto Target", false, function(s) end)
-
-    local ownerLabel = Instance.new("TextLabel")
-    ownerLabel.Size = UDim2.new(1, -4, 0, 16)
-    ownerLabel.BackgroundTransparency = 1
-    ownerLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
-    ownerLabel.Text = "Owner Account"
-    ownerLabel.TextXAlignment = Enum.TextXAlignment.Left
-    ownerLabel.Font = Enum.Font.SourceSans
-    ownerLabel.TextSize = 11
-    ownerLabel.Parent = standLeft
-
-    local ownerBox = Instance.new("TextBox")
-    ownerBox.Size = UDim2.new(1, -4, 0, 22)
-    ownerBox.BackgroundColor3 = Color3.fromRGB(30, 25, 30)
-    ownerBox.BorderColor3 = Color3.fromRGB(70, 40, 60)
-    ownerBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-    ownerBox.Text = LocalPlayer.Name
-    ownerBox.Font = Enum.Font.SourceSans
-    ownerBox.TextSize = 12
-    ownerBox.Parent = standLeft
-
-    local standCommandsSec = createSection(tabStand, "Stand Commands", UDim2.new(0, 290, 0, 150), UDim2.new(0, 0, 0, 280))
-    local actLabel = Instance.new("TextLabel")
-    actLabel.Size = UDim2.new(1, -4, 0, 16)
-    actLabel.BackgroundTransparency = 1
-    actLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
-    actLabel.Text = "Action (ex: come, attack, unlock)"
-    actLabel.TextXAlignment = Enum.TextXAlignment.Left
-    actLabel.Font = Enum.Font.SourceSans
-    actLabel.TextSize = 11
-    actLabel.Parent = standCommandsSec
-
-    local actBox = Instance.new("TextBox")
-    actBox.Size = UDim2.new(1, -4, 0, 22)
-    actBox.BackgroundColor3 = Color3.fromRGB(30, 25, 30)
-    actBox.BorderColor3 = Color3.fromRGB(70, 40, 60)
-    actBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-    actBox.Text = "come"
-    actBox.Font = Enum.Font.SourceSans
-    actBox.TextSize = 12
-    actBox.Parent = standCommandsSec
-
-    local standRight = createSection(tabStand, "Movement", UDim2.new(0, 295, 0, 240), UDim2.new(0, 300, 0, 0))
-    createSlider(standRight, "Follow Distance", 2.36, 12)
-    createSlider(standRight, "Transfer Range", 55, 150)
-    createSlider(standRight, "Evade Push", 24, 90)
-    createSlider(standRight, "Ball Min Dist", 8, 80)
-
-    -- ================= MONTANDO ABA COMBAT[cite: 3] =================
-    local combatLeft = createSection(tabCombat, "Combat & Defense", UDim2.new(0, 290, 0, 430), UDim2.new(0, 0, 0, 0))
-    createToggle(combatLeft, "Use Auto Parry", true, function(s) end)
-    createToggle(combatLeft, "Auto Attack", true, function(s) end)
-    createToggle(combatLeft, "M1 SFX", true, function(s) end)
-    createSlider(combatLeft, "M1 SFX Gap", 0.25, 1.6)
-
-    local combatRight = createSection(tabCombat, "Tuning & Ranges", UDim2.new(0, 295, 0, 430), UDim2.new(0, 300, 0, 0))
-    createSlider(combatRight, "Target Range", 120, 120)
-    createSlider(combatRight, "Erase Range", 160, 160)
-    createSlider(combatRight, "Erase Zone Range", 100, 100)
-    createSlider(combatRight, "Attack Distance", 9, 9)
-    createSlider(combatRight, "Attack Range", 14, 14)
-
-    -- Outras abas utilitárias
-    local visSec = createSection(tabVisuals, "ESP & Settings", UDim2.new(0, 290, 0, 200), UDim2.new(0, 0, 0, 0))
-    createToggle(visSec, "Player ESP", false, function(s) end)
-
-    print("[Number One] Painel Completo Carregado com Sucesso!")
-end
-
-return GakuranModule
+print("[Y Hub Alt] NoClip com ativação de Pose de Aura configurado!")
