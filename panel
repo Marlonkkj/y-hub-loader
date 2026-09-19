@@ -1,127 +1,56 @@
---// Y Hub Alt - Modo Stand Extremo (Anti-Lag de Servidor Cheio + Deleção de Pessoas Longe)
+--// Y Hub Alt - Versão Ultra Leve Anti-Trava (Servidores Cheios) + Tecla End
 pcall(function()
 	if setfpscap then
-		setfpscap(20)
+		setfpscap(30)
 	end
 end)
 
--- 1. Limpeza Estrutural: Mantém apenas as paredes essenciais, removendo texturas, sombras e luzes
+-- 1. Limpeza Gráfica Básica (Mantém apenas as paredes visíveis sem texturas e sem pesar)
 pcall(function()
 	local Lighting = game:GetService("Lighting")
 	Lighting.GlobalShadows = false
-	Lighting.FogEnd = 0
-	Lighting.Brightness = 0
-	
+	Lighting.FogEnd = 9e9
+	Lighting.Brightness = 1
+
 	for _, v in ipairs(Lighting:GetChildren()) do
-		v:Destroy()
+		if v:IsA("PostEffect") or v:IsA("BlurEffect") or v:IsA("SunRaysEffect") then
+			v:Destroy()
+		end
 	end
 
-	-- Deixa o mapa apenas com as formas das paredes, mas sem nenhuma textura ou detalhes pesados
 	for _, v in ipairs(workspace:GetDescendants()) do
 		pcall(function()
 			if v:IsA("BasePart") then
-				v.Material = Enum.Material.Plastic
+				v.Material = Enum.Material.SmoothPlastic
 				v.CastShadow = false
-				v.Color = Color3.fromRGB(130, 130, 130)
-				v.Reflectance = 0
-				-- Desativa colisões em peças desnecessárias para o combate
-				if not v.Anchored then
-					v.CanCollide = false
-				end
-			elseif v:IsA("Decal") or v:IsA("Texture") or v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Beam") or v:IsA("Fire") or v:IsA("Smoke") or v:IsA("Sound") or v:IsA("Explosion") then
+			elseif v:IsA("Decal") or v:IsA("Texture") or v:IsA("ParticleEmitter") or v:IsA("Trail") then
 				v:Destroy()
 			end
 		end)
 	end
-
-	workspace.DescendantAdded:Connect(function(v)
-		pcall(function()
-			if v:IsA("BasePart") then
-				v.Material = Enum.Material.Plastic
-				v.CastShadow = false
-				v.Color = Color3.fromRGB(130, 130, 130)
-				v.Reflectance = 0
-			elseif v:IsA("Decal") or v:IsA("Texture") then
-				v:Destroy()
-			end
-		end)
-	end)
 end)
 
--- 2. Anti-Lag Severo para Servidores Cheios (Deleta temporariamente quem está longe para zerar o travamento do !attack)
-pcall(function()
-	local Players = game:GetService("Players")
-	local LocalPlayer = Players.LocalPlayer
-	local RunService = game:GetService("RunService")
-
-	local counter = 0
-	RunService.Heartbeat:Connect(function()
-		counter = counter + 1
-		if counter % 10 ~= 0 then return end
-
-		pcall(function()
-			local localRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-			if not localRoot then return end
-
-			for _, player in ipairs(Players:GetPlayers()) do
-				if player ~= LocalPlayer and player.Character then
-					local char = player.Character
-					local root = char:FindFirstChild("HumanoidRootPart")
-					
-					if root then
-						local distance = (root.Position - localRoot.Position).Magnitude
-						-- Se o player estiver a mais de 20 studs, desativa totalmente a modelagem e o rig para poupar o processador
-						if distance > 20 then
-							for _, part in ipairs(char:GetDescendants()) do
-								if part:IsA("BasePart") then
-									part.Transparency = 1
-									part.CanCollide = false
-									part.AssemblyLinearVelocity = Vector3.new(0,0,0)
-								elseif part:IsA("Accessory") or part:IsA("Clothing") then
-									part.Parent = nil
-								end
-							end
-						else
-							-- Quando chega perto para o combate/attack, o personagem reaparece instantaneamente
-							for _, part in ipairs(char:GetDescendants()) do
-								if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" and part.Transparency == 1 then
-									part.Transparency = 0
-									part.CanCollide = true
-								end
-							end
-						end
-					end
-				end
-			end
-		end)
-	end)
-end)
-
--- 3. Combate Otimizado: Movimentação Randômica + Alinhamento Instantâneo de Ataque
+-- 2. Sistema de Combate Leve (Sem travamentos na Main)
 pcall(function()
 	local Players = game:GetService("Players")
 	local RunService = game:GetService("RunService")
 	local LocalPlayer = Players.LocalPlayer
 
-	local randomMoveTick = 0
+	-- Executa a checagem de forma cadenciada para nunca travar o FPS
+	local clock = 0
+	RunService.Heartbeat:Connect(function(dt)
+		clock = clock + dt
+		if clock < 0.1 then return end -- Roda a cada 100ms em vez de todo frame
+		clock = 0
 
-	RunService.RenderStepped:Connect(function(dt)
 		pcall(function()
 			local char = LocalPlayer.Character
 			local root = char and char:FindFirstChild("HumanoidRootPart")
 			local humanoid = char and char:FindFirstChildOfClass("Humanoid")
 			if not root or not humanoid then return end
 
-			randomMoveTick = randomMoveTick + dt
-			if randomMoveTick > 1.2 then
-				randomMoveTick = 0
-				if math.random(1, 2) == 1 then
-					humanoid:Move(Vector3.new(math.random(-1, 1), 0, math.random(-1, 1)).Unit, false)
-				end
-			end
-
 			local target = nil
-			local shortestDistance = 15
+			local shortestDistance = 18
 
 			for _, player in ipairs(Players:GetPlayers()) do
 				if player ~= LocalPlayer and player.Character then
@@ -145,7 +74,7 @@ pcall(function()
 	end)
 end)
 
--- 4. Painel Flutuante do Voo Superman (Abre e fecha na tecla Insert)
+-- 3. Painel Flutuante do Voo Superman (Abre e fecha na tecla END)
 pcall(function()
 	local CoreGui = game:GetService("CoreGui")
 	local RunService = game:GetService("RunService")
@@ -160,7 +89,7 @@ pcall(function()
 	local frame = Instance.new("Frame")
 	frame.Size = UDim2.new(0, 210, 0, 165)
 	frame.Position = UDim2.new(0, 30, 0, 150)
-	frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+	frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 	frame.BorderSizePixel = 0
 	frame.Active = true
 	frame.Draggable = true
@@ -173,8 +102,8 @@ pcall(function()
 	local title = Instance.new("TextLabel")
 	title.Size = UDim2.new(1, -40, 0, 30)
 	title.BackgroundTransparency = 1
-	title.Text = "Y Hub Stand [Insert]"
-	title.TextColor3 = Color3.fromRGB(180, 180, 180)
+	title.Text = "Y Hub [End] p/ Fechar"
+	title.TextColor3 = Color3.fromRGB(200, 200, 200)
 	title.TextSize = 10
 	title.Font = Enum.Font.SourceSansBold
 	title.Parent = frame
@@ -182,7 +111,7 @@ pcall(function()
 	local minimizeBtn = Instance.new("TextButton")
 	minimizeBtn.Size = UDim2.new(0, 30, 0, 20)
 	minimizeBtn.Position = UDim2.new(1, -35, 0, 5)
-	minimizeBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+	minimizeBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
 	minimizeBtn.Text = "-"
 	minimizeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 	minimizeBtn.TextSize = 12
@@ -193,7 +122,7 @@ pcall(function()
 	local noclipBtn = Instance.new("TextButton")
 	noclipBtn.Size = UDim2.new(0, 190, 0, 25)
 	noclipBtn.Position = UDim2.new(0, 10, 0, 35)
-	noclipBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+	noclipBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 	noclipBtn.Text = "NoClip: OFF"
 	noclipBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
 	noclipBtn.TextSize = 11
@@ -204,7 +133,7 @@ pcall(function()
 	local flyBtn = Instance.new("TextButton")
 	flyBtn.Size = UDim2.new(0, 190, 0, 25)
 	flyBtn.Position = UDim2.new(0, 10, 0, 65)
-	flyBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+	flyBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 	flyBtn.Text = "Voo Superman: OFF"
 	flyBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
 	flyBtn.TextSize = 11
@@ -225,7 +154,7 @@ pcall(function()
 	local minusBtn = Instance.new("TextButton")
 	minusBtn.Size = UDim2.new(0, 90, 0, 25)
 	minusBtn.Position = UDim2.new(0, 10, 0, 125)
-	minusBtn.BackgroundColor3 = Color3.fromRGB(50, 30, 30)
+	minusBtn.BackgroundColor3 = Color3.fromRGB(60, 40, 40)
 	minusBtn.Text = "(- Vel)"
 	minusBtn.TextColor3 = Color3.fromRGB(255, 150, 150)
 	minusBtn.TextSize = 10
@@ -236,7 +165,7 @@ pcall(function()
 	local plusBtn = Instance.new("TextButton")
 	plusBtn.Size = UDim2.new(0, 90, 0, 25)
 	plusBtn.Position = UDim2.new(0, 110, 0, 125)
-	plusBtn.BackgroundColor3 = Color3.fromRGB(30, 50, 30)
+	plusBtn.BackgroundColor3 = Color3.fromRGB(40, 60, 40)
 	plusBtn.Text = "(+ Vel)"
 	plusBtn.TextColor3 = Color3.fromRGB(150, 255, 150)
 	plusBtn.TextSize = 10
@@ -252,7 +181,7 @@ pcall(function()
 	local flySpeed = 1.4
 
 	UserInputService.InputBegan:Connect(function(input)
-		if input.KeyCode == Enum.KeyCode.Insert then
+		if input.KeyCode == Enum.KeyCode.End then
 			isHidden = not isHidden
 			frame.Visible = not isHidden
 		end
@@ -368,10 +297,10 @@ pcall(function()
 	end)
 end)
 
--- 5. Loader Principal (Y-Core)
+-- 4. Loader Principal (Y-Core)
 pcall(function()
 	getgenv().script_key = "Y-CORE"
 	loadstring(game:HttpGet("https://raw.githubusercontent.com/GodErste/Y-Core/refs/heads/main/loader.lua"))()
 end)
 
-print("[Y Hub] Modo Stand Extremo de Servidor Cheio Ativado!")
+print("[Y Hub] Modo Anti-Trava Ativado com Sucesso!")
