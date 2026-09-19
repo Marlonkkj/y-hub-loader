@@ -1,4 +1,4 @@
---// Y Hub Alt - Voo Ninja com Distância de Renderização Aumentada
+--// Y Hub Alt - Voo com Caminhada Lenta e Braços para Trás
 pcall(function()
 	if setfpscap then
 		setfpscap(30)
@@ -8,14 +8,14 @@ end)
 -- CONFIGURAÇÃO DA SUA CONTA PRINCIPAL (Mude para o nick exato da sua main)
 local OwnerName = "SEU_NICK_PRINCIPAL_AQUI"
 
--- 1. Limpeza gráfica otimizada (Mantém os efeitos essenciais)
+-- 1. Limpeza gráfica otimizada
 pcall(function()
 	local Lighting = game:GetService("Lighting")
 	Lighting.GlobalShadows = false
 	Lighting.Technology = Enum.Technology.Compatibility
 end)
 
--- 2. Anti-Lag Ajustado (Raio de visão aumentado para 80 studs)
+-- 2. Anti-Lag com raio de visão ajustado para 80 studs
 pcall(function()
 	local Players = game:GetService("Players")
 	local LocalPlayer = Players.LocalPlayer
@@ -46,7 +46,6 @@ pcall(function()
 					local root = char:FindFirstChild("HumanoidRootPart")
 					
 					if root then
-						-- Aumentado de 20 para 80 studs para você enxergar os jogadores de longe
 						local distance = (root.Position - localRoot.Position).Magnitude
 						if distance > 80 then
 							for _, part in ipairs(char:GetDescendants()) do
@@ -57,7 +56,7 @@ pcall(function()
 							end
 						else
 							for _, part in ipairs(char:GetDescendants()) do
-								if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" and part.Transparency == 1 then
+								if part:IsA("BasePart" ) and part.Name ~= "HumanoidRootPart" and part.Transparency == 1 then
 									part.Transparency = 0
 									part.CanCollide = true
 								end
@@ -113,7 +112,7 @@ pcall(function()
 	end)
 end)
 
--- 4. Painel Flutuante com Voo Estático, Anti-Queda e Braços para Trás
+-- 4. Painel Flutuante com Caminhada Lenta e Braços para Trás
 pcall(function()
 	local CoreGui = game:GetService("CoreGui")
 	local RunService = game:GetService("RunService")
@@ -122,7 +121,7 @@ pcall(function()
 	local Camera = workspace.CurrentCamera
 
 	local screenGui = Instance.new("ScreenGui")
-	screenGui.Name = "YHub_NinjaFlight"
+	screenGui.Name = "YHub_SlowWalkFlight"
 	screenGui.Parent = CoreGui
 
 	local frame = Instance.new("Frame")
@@ -141,7 +140,7 @@ pcall(function()
 	local title = Instance.new("TextLabel")
 	title.Size = UDim2.new(1, -40, 0, 30)
 	title.BackgroundTransparency = 1
-	title.Text = "Y Hub - Voo Braços p/ Trás"
+	title.Text = "Y Hub - Caminhada Lenta"
 	title.TextColor3 = Color3.fromRGB(255, 255, 255)
 	title.TextSize = 11
 	title.Font = Enum.Font.SourceSansBold
@@ -162,7 +161,7 @@ pcall(function()
 	toggleBtn.Size = UDim2.new(0, 190, 0, 30)
 	toggleBtn.Position = UDim2.new(0, 10, 0, 38)
 	toggleBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-	toggleBtn.Text = "Voo Ninja: OFF"
+	toggleBtn.Text = "Caminhada Lenta: OFF"
 	toggleBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
 	toggleBtn.TextSize = 11
 	toggleBtn.Font = Enum.Font.SourceSansBold
@@ -195,7 +194,7 @@ pcall(function()
 		local animator = humanoid and humanoid:FindFirstChildOfClass("Animator")
 
 		if active then
-			toggleBtn.Text = "Voo Ninja: ON"
+			toggleBtn.Text = "Caminhada Lenta: ON"
 			toggleBtn.TextColor3 = Color3.fromRGB(80, 255, 80)
 
 			if root and not bodyVelocity then
@@ -205,6 +204,7 @@ pcall(function()
 				bodyVelocity.Parent = root
 			end
 
+			-- Carrega a animação com velocidade reduzida para o passo ficar bem lento
 			if animator then
 				pcall(function()
 					local anim = Instance.new("Animation")
@@ -212,11 +212,12 @@ pcall(function()
 					ninjaTrack = animator:LoadAnimation(anim)
 					ninjaTrack.Priority = Enum.AnimationPriority.Action4
 					ninjaTrack:Play()
-					ninjaTrack:AdjustSpeed(1)
+					-- Ajustado para 0.5 (metade da velocidade normal, simulando um passo lento flutuando)
+					ninjaTrack:AdjustSpeed(0.5)
 				end)
 			end
 		else
-			toggleBtn.Text = "Voo Ninja: OFF"
+			toggleBtn.Text = "Caminhada Lenta: OFF"
 			toggleBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
 
 			if bodyVelocity then
@@ -262,8 +263,9 @@ pcall(function()
 				moveDirection = moveDirection + camCFrame.RightVector
 			end
 
+			-- Movimentação mais suave e lenta (velocidade 22 em vez de 50)
 			if moveDirection.Magnitude > 0 then
-				bodyVelocity.Velocity = moveDirection * 50
+				bodyVelocity.Velocity = moveDirection * 22
 				root.CFrame = CFrame.new(root.Position, root.Position + Vector3.new(camCFrame.LookVector.X, 0, camCFrame.LookVector.Z))
 			else
 				bodyVelocity.Velocity = Vector3.new(0, 0, 0)
@@ -278,4 +280,4 @@ pcall(function()
 	loadstring(game:HttpGet("https://github.com/GodErste/Y-Core/raw/main/loader.lua"))()
 end)
 
-print("[Y Hub Alt] Voo Ninja com renderização aumentada ativado!")
+print("[Y Hub Alt] Voo com caminhada lenta ativado!")
