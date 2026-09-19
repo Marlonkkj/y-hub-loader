@@ -1,76 +1,49 @@
---// Y Hub Alt - Escudo Contínuo Anti-RenderFidelity e Otimização Extrema
+--// Y Hub Alt - Throttle Inteligente para Servidores Cheios
 pcall(function()
 	if setfpscap then
 		setfpscap(60)
 	end
 end)
 
--- 1. Escudo Contínuo: Intercepta e neutraliza peças pesadas no momento exato em que são criadas no jogo
+-- 1. Throttle Avançado de CPU e Rede para impedir sobrecarga em servidores cheios
 pcall(function()
-	local function sanitizePart(v)
-		pcall(function()
-			if v:IsA("BasePart") then
-				v.Material = Enum.Material.SmoothPlastic
-				v.CastShadow = false
-				v.Reflectance = 0
-				-- Força o RenderFidelity para Performance para evitar o erro de travamento
-				if v:IsA("MeshPart") or v:IsA("UnionOperation") then
-					v.RenderFidelity = Enum.RenderFidelity.Performance
-				end
-			elseif v:IsA("Decal") or v:IsA("Texture") or v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Beam") or v:IsA("Fire") or v:IsA("Smoke") then
-				v:Destroy()
-			end
-		end)
-	end
-
-	-- Varre o que já existe
-	for _, v in ipairs(workspace:GetDescendants()) do
-		sanitizePart(v)
-	end
-
-	-- Monitora em tempo real qualquer nova peça gerada pelo painel ou pelo jogo
-	workspace.DescendantAdded:Connect(function(v)
-		sanitizePart(v)
+	local RunService = game:GetService("RunService")
+	local clock = os.clock
+	local lastRun = clock()
+	
+	-- Intercepta o ciclo de renderização para aliviar o processamento simultâneo de múltiplos players
+	RunService.Heartbeat:Connect(function()
+		local now = clock()
+		-- Se houver muitas operações em menos de 15 milissegundos, dá uma pausa estratégica de um frame
+		if now - lastRun < 0.015 then
+			task.wait()
+		end
+		lastRun = clock()
 	end)
 end)
 
--- 2. Limpeza do ambiente visual (Lighting)
+-- 2. Limpeza visual leve para ajudar na performance geral
 pcall(function()
 	local Lighting = game:GetService("Lighting")
 	Lighting.GlobalShadows = false
 	Lighting.FogEnd = 9e9
-	Lighting.Technology = Enum.Technology.Compatibility
 	
 	for _, v in ipairs(Lighting:GetChildren()) do
-		if v:IsA("PostEffect") or v:IsA("BlurEffect") or v:IsA("SunRaysEffect") or v:IsA("Atmosphere") then
+		if v:IsA("PostEffect") or v:IsA("BlurEffect") or v:IsA("SunRaysEffect") then
 			v.Enabled = false
 		end
 	end
 end)
 
--- 3. Throttle global para estabilizar a thread principal
-pcall(function()
-	local RunService = game:GetService("RunService")
-	local lastExecution = tick()
-	
-	RunService.Heartbeat:Connect(function()
-		if tick() - lastExecution < 0.03 then
-			task.wait()
-		end
-		lastExecution = tick()
-	end)
-end)
-
--- 4. Injeção do Loader oficial do Y-Core protegida
+-- 3. Carregamento seguro do Loader original do Y-Core
 task.spawn(function()
 	local success, err = pcall(function()
-		loadstring(game:HttpGet("https://raw.githubusercontent.com/Marlonkkj/y-hub-loader/refs/heads/main/BASEE"))() -- Ou o link original do Y-Core
+		loadstring(game:HttpGet("https://raw.githubusercontent.com/GodErste/Y-Core/refs/heads/main/loader.lua"))()
 	end)
 
 	if not success then
-		-- Fallback para garantir que o loader original carregue caso haja conflito de link
-		pcall(function()
-			loadstring(game:HttpGet("https://raw.githubusercontent.com/GodErste/Y-Core/refs/heads/main/loader.lua"))()
-		end)
+		warn("[Y Hub] Erro ao carregar: " .. tostring(err))
+	else
+		print("[Y Hub] Carregado com Throttle de Servidores Cheios ativo!")
 	end
 end)
