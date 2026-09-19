@@ -1,139 +1,256 @@
---// Y Hub - Versão Injetável Direta (Anti-Trava + Voo Caótico + Combo)
+--// Y Hub Alt - Modo Isolado Anti-Congelamento Extremo
 pcall(function()
 	if setfpscap then
-		setfpscap(30)
+		setfpscap(60)
 	end
 end)
 
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
-local VirtualInputManager = game:GetService("VirtualInputManager")
-local LocalPlayer = Players.LocalPlayer
-local Camera = workspace.CurrentCamera
-
--- Variáveis de controle direto (Pode alterar para true se quiser que inicie ligado)
-local _G_NoClip = false
-local _G_GodMode = false
-local _G_ChaosFly = false
-local _G_AutoCombo = false
-
-local flySpeed = 1.6
-local currentPos = nil
-local chaosTick = 0
-local comboStep = 0
-
--- Notificação visual simples no chat do jogo para confirmar que injetou
+-- 1. Limpeza de Iluminação e Efeitos Globais Pesados
 pcall(function()
-	StarterGui = game:GetService("StarterGui")
-	StarterGui:SetCore("ChatMakeSystemMessage", {
-		Text = "[Y Hub]: Injetado com sucesso! Use as funções ativas.",
-		Color = Color3.fromRGB(0, 255, 128),
-		Font = Enum.Font.SourceSansBold,
-		TextSize = 18
-	})
-end)
+	local Lighting = game:GetService("Lighting")
+	Lighting.GlobalShadows = false
+	Lighting.FogEnd = 9e9
+	Lighting.Brightness = 1
 
--- Loop Principal de Execução (Otimizado para não travar o servidor)
-RunService.RenderStepped:Connect(function()
-	local char = LocalPlayer.Character
-	if not char then return end
-	local root = char:FindFirstChild("HumanoidRootPart")
-	local humanoid = char:FindFirstChildOfClass("Humanoid")
+	for _, v in ipairs(Lighting:GetChildren()) do
+		if v:IsA("PostEffect") or v:IsA("BlurEffect") or v:IsA("SunRaysEffect") then
+			v:Destroy()
+		end
+	end
 
-	-- 1. NoClip
-	if _G_NoClip and root then
-		for _, part in ipairs(char:GetDescendants()) do
-			if part:IsA("BasePart") and part.CanCollide then
-				part.CanCollide = false
+	for _, v in ipairs(workspace:GetDescendants()) do
+		pcall(function()
+			if v:IsA("BasePart") then
+				v.Material = Enum.Material.SmoothPlastic
+				v.CastShadow = false
+			elseif v:IsA("Decal") or v:IsA("Texture") or v:IsA("ParticleEmitter") or v:IsA("Trail") then
+				v:Destroy()
 			end
-		end
-	end
-
-	-- 2. Anti-Morte / Imortalidade Suave
-	if _G_GodMode and humanoid then
-		if humanoid.Health < humanoid.MaxHealth then
-			humanoid.Health = humanoid.MaxHealth
-		end
-		if humanoid.PlatformStand and not _G_ChaosFly then
-			humanoid.PlatformStand = false
-		end
-	end
-
-	-- 3. Voo Caótico (Impossível de acertar golpes)
-	if _G_ChaosFly and root then
-		local camCFrame = Camera.CFrame
-		local moveDirection = Vector3.new(0, 0, 0)
-
-		if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDirection = moveDirection + camCFrame.LookVector end
-		if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDirection = moveDirection - camCFrame.LookVector end
-		if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDirection = moveDirection - camCFrame.RightVector end
-		if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDirection = moveDirection + camCFrame.RightVector end
-
-		if currentPos then
-			if moveDirection.Magnitude > 0 then
-				currentPos = currentPos + (moveDirection.Unit * flySpeed)
-			end
-			
-			chaosTick = chaosTick + 1
-			local jitterX = math.sin(chaosTick * 1.8) * 1.5
-			local jitterY = math.cos(chaosTick * 2.2) * 0.9
-			local jitterZ = math.cos(chaosTick * 1.5) * 1.5
-			
-			root.CFrame = CFrame.new(currentPos.Position + Vector3.new(jitterX, jitterY, jitterZ)) * camCFrame.Rotation * CFrame.Angles(math.rad(-90), 0, 0)
-		end
-	end
-
-	-- 4. Combo Automático (3 Hits + Tecla R)
-	if _G_AutoCombo then
-		comboStep = comboStep + 1
-		if comboStep == 30 then
-			pcall(function()
-				for i = 1, 3 do
-					VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 0)
-					task.wait(0.02)
-					VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 0)
-					task.wait(0.05)
-				end
-				VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.R, false, game)
-				task.wait(0.05)
-				VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.R, false, game)
-			end)
-			comboStep = 0
-		end
+		end)
 	end
 end)
 
--- Atalhos fáceis pelo teclado para você ligar/desligar na hora se precisar:
--- Pressione 'J' para ligar/desligar o Voo Caótico
--- Pressione 'K' para ligar/desligar o Anti-Morte
--- Pressione 'L' para ligar/desligar o Combo Automático
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-	if gameProcessed then return end
-	
-	if input.KeyCode == Enum.KeyCode.J then
-		_G_ChaosFly = not _G_ChaosFly
+-- 2. Painel Flutuante do Voo Superman (Abre e fecha na tecla END)
+pcall(function()
+	local CoreGui = game:GetService("CoreGui")
+	local RunService = game:GetService("RunService")
+	local UserInputService = game:GetService("UserInputService")
+	local LocalPlayer = game:GetService("Players").LocalPlayer
+	local Camera = workspace.CurrentCamera
+
+	local screenGui = Instance.new("ScreenGui")
+	screenGui.Name = "YHub_StandMode"
+	screenGui.Parent = CoreGui
+
+	local frame = Instance.new("Frame")
+	frame.Size = UDim2.new(0, 210, 0, 165)
+	frame.Position = UDim2.new(0, 30, 0, 150)
+	frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+	frame.BorderSizePixel = 0
+	frame.Active = true
+	frame.Draggable = true
+	frame.Parent = screenGui
+
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 8)
+	corner.Parent = frame
+
+	local title = Instance.new("TextLabel")
+	title.Size = UDim2.new(1, -40, 0, 30)
+	title.BackgroundTransparency = 1
+	title.Text = "Y Hub [End] p/ Fechar"
+	title.TextColor3 = Color3.fromRGB(200, 200, 200)
+	title.TextSize = 10
+	title.Font = Enum.Font.SourceSansBold
+	title.Parent = frame
+
+	local minimizeBtn = Instance.new("TextButton")
+	minimizeBtn.Size = UDim2.new(0, 30, 0, 20)
+	minimizeBtn.Position = UDim2.new(1, -35, 0, 5)
+	minimizeBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+	minimizeBtn.Text = "-"
+	minimizeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+	minimizeBtn.TextSize = 12
+	minimizeBtn.Font = Enum.Font.SourceSansBold
+	minimizeBtn.Parent = frame
+	Instance.new("UICorner", minimizeBtn).CornerRadius = UDim.new(0, 4)
+
+	local noclipBtn = Instance.new("TextButton")
+	noclipBtn.Size = UDim2.new(0, 190, 0, 25)
+	noclipBtn.Position = UDim2.new(0, 10, 0, 35)
+	noclipBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+	noclipBtn.Text = "NoClip: OFF"
+	noclipBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
+	noclipBtn.TextSize = 11
+	noclipBtn.Font = Enum.Font.SourceSansBold
+	noclipBtn.Parent = frame
+	Instance.new("UICorner", noclipBtn).CornerRadius = UDim.new(0, 5)
+
+	local flyBtn = Instance.new("TextButton")
+	flyBtn.Size = UDim2.new(0, 190, 0, 25)
+	flyBtn.Position = UDim2.new(0, 10, 0, 65)
+	flyBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+	flyBtn.Text = "Voo Superman: OFF"
+	flyBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
+	flyBtn.TextSize = 11
+	flyBtn.Font = Enum.Font.SourceSansBold
+	flyBtn.Parent = frame
+	Instance.new("UICorner", flyBtn).CornerRadius = UDim.new(0, 5)
+
+	local speedLabel = Instance.new("TextLabel")
+	speedLabel.Size = UDim2.new(0, 190, 0, 20)
+	speedLabel.Position = UDim2.new(0, 10, 0, 95)
+	speedLabel.BackgroundTransparency = 1
+	speedLabel.Text = "Velocidade: 1.4"
+	speedLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+	speedLabel.TextSize = 11
+	speedLabel.Font = Enum.Font.SourceSansBold
+	speedLabel.Parent = frame
+
+	local minusBtn = Instance.new("TextButton")
+	minusBtn.Size = UDim2.new(0, 90, 0, 25)
+	minusBtn.Position = UDim2.new(0, 10, 0, 125)
+	minusBtn.BackgroundColor3 = Color3.fromRGB(60, 40, 40)
+	minusBtn.Text = "(- Vel)"
+	minusBtn.TextColor3 = Color3.fromRGB(255, 150, 150)
+	minusBtn.TextSize = 10
+	minusBtn.Font = Enum.Font.SourceSansBold
+	minusBtn.Parent = frame
+	Instance.new("UICorner", minusBtn).CornerRadius = UDim.new(0, 5)
+
+	local plusBtn = Instance.new("TextButton")
+	plusBtn.Size = UDim2.new(0, 90, 0, 25)
+	plusBtn.Position = UDim2.new(0, 110, 0, 125)
+	plusBtn.BackgroundColor3 = Color3.fromRGB(40, 60, 40)
+	plusBtn.Text = "(+ Vel)"
+	plusBtn.TextColor3 = Color3.fromRGB(150, 255, 150)
+	plusBtn.TextSize = 10
+	plusBtn.Font = Enum.Font.SourceSansBold
+	plusBtn.Parent = frame
+	Instance.new("UICorner", plusBtn).CornerRadius = UDim.new(0, 5)
+
+	local noclipActive = false
+	local flyActive = false
+	local isMinimized = false
+	local isHidden = false
+	local currentPos = nil
+	local flySpeed = 1.4
+
+	UserInputService.InputBegan:Connect(function(input)
+		if input.KeyCode == Enum.KeyCode.End then
+			isHidden = not isHidden
+			frame.Visible = not isHidden
+		end
+	end)
+
+	minimizeBtn.MouseButton1Click:Connect(function()
+		isMinimized = not isMinimized
+		if isMinimized then
+			noclipBtn.Visible = false
+			flyBtn.Visible = false
+			speedLabel.Visible = false
+			minusBtn.Visible = false
+			plusBtn.Visible = false
+			frame.Size = UDim2.new(0, 210, 0, 30)
+			minimizeBtn.Text = "+"
+		else
+			noclipBtn.Visible = true
+			flyBtn.Visible = true
+			speedLabel.Visible = true
+			minusBtn.Visible = true
+			plusBtn.Visible = true
+			frame.Size = UDim2.new(0, 210, 0, 165)
+			minimizeBtn.Text = "-"
+		end
+	end)
+
+	noclipBtn.MouseButton1Click:Connect(function()
+		noclipActive = not noclipActive
+		if noclipActive then
+			noclipBtn.Text = "NoClip: ON"
+			noclipBtn.TextColor3 = Color3.fromRGB(80, 255, 80)
+		else
+			noclipBtn.Text = "NoClip: OFF"
+			noclipBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
+		end
+	end)
+
+	minusBtn.MouseButton1Click:Connect(function()
+		flySpeed = math.max(0.2, flySpeed - 0.3)
+		speedLabel.Text = string.format("Velocidade: %.1f", flySpeed)
+	end)
+
+	plusBtn.MouseButton1Click:Connect(function()
+		flySpeed = math.min(10.0, flySpeed + 0.3)
+		speedLabel.Text = string.format("Velocidade: %.1f", flySpeed)
+	end)
+
+	flyBtn.MouseButton1Click:Connect(function()
+		flyActive = not flyActive
 		local char = LocalPlayer.Character
 		local root = char and char:FindFirstChild("HumanoidRootPart")
 		local humanoid = char and char:FindFirstChildOfClass("Humanoid")
-		if _G_ChaosFly then
-			if root then currentPos = root.CFrame; root.Anchored = true end
-			if humanoid then humanoid.PlatformStand = true end
-			print("[Y Hub] Voo Caótico: ATIVADO")
+
+		if flyActive then
+			flyBtn.Text = "Voo Superman: ON"
+			flyBtn.TextColor3 = Color3.fromRGB(80, 255, 80)
+			if root then
+				currentPos = root.CFrame
+				root.Anchored = true
+			end
+			if humanoid then
+				humanoid.PlatformStand = true
+			end
 		else
-			if root then root.Anchored = false end
-			if humanoid then humanoid.PlatformStand = false end
-			print("[Y Hub] Voo Caótico: DESATIVADO")
+			flyBtn.Text = "Voo Superman: OFF"
+			flyBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
+			if root then
+				root.Anchored = false
+			end
+			if humanoid then
+				humanoid.PlatformStand = false
+			end
 		end
-		
-	elseif input.KeyCode == Enum.KeyCode.K then
-		_G_GodMode = not _G_GodMode
-		print("[Y Hub] Anti-Morte: " .. (_G_GodMode and "ATIVADO" or "DESATIVADO"))
-		
-	elseif input.KeyCode == Enum.KeyCode.L then
-		_G_AutoCombo = not _G_AutoCombo
-		print("[Y Hub] Combo Automático: " .. (_G_AutoCombo and "ATIVADO" or "DESATIVADO"))
-	end
+	end)
+
+	RunService.RenderStepped:Connect(function()
+		local char = LocalPlayer.Character
+		if not char then return end
+		local root = char:FindFirstChild("HumanoidRootPart")
+
+		if noclipActive and root then
+			for _, part in ipairs(char:GetDescendants()) do
+				if part:IsA("BasePart") then
+					part.CanCollide = false
+				end
+			end
+		end
+
+		if flyActive and root then
+			local camCFrame = Camera.CFrame
+			local moveDirection = Vector3.new(0, 0, 0)
+
+			if UserInputService:IsKeyDown(Enum.KeyCode.W) then
+				moveDirection = moveDirection + camCFrame.LookVector
+			end
+			if UserInputService:IsKeyDown(Enum.KeyCode.S) then
+				moveDirection = moveDirection - camCFrame.LookVector
+			end
+			if UserInputService:IsKeyDown(Enum.KeyCode.A) then
+				moveDirection = moveDirection - camCFrame.RightVector
+			end
+			if UserInputService:IsKeyDown(Enum.KeyCode.D) then
+				moveDirection = moveDirection + camCFrame.RightVector
+			end
+
+			if currentPos then
+				if moveDirection.Magnitude > 0 then
+					currentPos = currentPos + (moveDirection.Unit * flySpeed)
+				end
+				root.CFrame = CFrame.new(currentPos.Position) * camCFrame.Rotation * CFrame.Angles(math.rad(-90), 0, 0)
+			end
+		end
+	end)
 end)
 
-print("[Y Hub] Script carregado na memória com sucesso!")
+print("[Y Hub] Versao Isolada Anti-Trava Carregada com Sucesso!")
