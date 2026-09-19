@@ -1,11 +1,11 @@
---// Y Hub Alt - Versão Idêntica ao que Funcionava (Sumiço Total de Longe + Sem Texturas)
+--// Y Hub Alt - Render Distance Limiter (Anti-Lag Extremo para Servidores Cheios)
 pcall(function()
 	if setfpscap then
 		setfpscap(30)
 	end
 end)
 
--- 1. Limpeza gráfica do mapa (Remove texturas, mantendo as paredes visíveis)
+-- 1. Limpeza Gráfica do Mapa (Deixa o cenário com textura lisa e sem sombras pesadas)
 pcall(function()
 	local Lighting = game:GetService("Lighting")
 	Lighting.GlobalShadows = false
@@ -33,42 +33,49 @@ pcall(function()
 	end
 end)
 
--- 2. Anti-Lag Real: Faz os outros players sumirem de longe (Destruindo os acessórios/corpo visual excedente)
+-- 2. Limite de Renderização Estrito (Render Distance Culling para Jogadores e Funções do Painel)
 pcall(function()
 	local Players = game:GetService("Players")
 	local LocalPlayer = Players.LocalPlayer
 	local RunService = game:GetService("RunService")
 
+	local MAX_DISTANCE = 35 -- Limite máximo em studs: tudo além disso é ocultado e desativado da engine
 	local counter = 0
+
 	RunService.Heartbeat:Connect(function()
 		counter = counter + 1
-		if counter % 15 ~= 0 then return end
+		if counter % 10 ~= 0 then return end -- Executa a cada 10 frames para poupar o processador
 
 		pcall(function()
-			local localRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-			if not localRoot then return end
+			local char = LocalPlayer.Character
+			local root = char and char:FindFirstChild("HumanoidRootPart")
+			if not root then return end
 
 			for _, player in ipairs(Players:GetPlayers()) do
 				if player ~= LocalPlayer and player.Character then
-					local char = player.Character
-					local root = char:FindFirstChild("HumanoidRootPart")
-					
-					if root then
-						local distance = (root.Position - localRoot.Position).Magnitude
-						-- Se estiver longe, esconde completamente as partes visuais dos outros bonecos para aliviar o servidor
-						if distance > 20 then
-							for _, part in ipairs(char:GetChildren()) do
-								if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
+					local enemyChar = player.Character
+					local enemyRoot = enemyChar:FindFirstChild("HumanoidRootPart")
+
+					if enemyRoot then
+						local dist = (root.Position - enemyRoot.Position).Magnitude
+						
+						if dist > MAX_DISTANCE then
+							-- Fora do raio: Esconde totalmente e desliga colisões e efeitos para liberar o painel
+							for _, part in ipairs(enemyChar:GetDescendants()) do
+								if part:IsA("BasePart") then
 									part.Transparency = 1
 									part.CanCollide = false
-								elseif part:IsA("Accessory") or part:IsA("Clothing") then
-									part.Parent = nil -- Remove temporariamente o peso dos acessórios
+								elseif part:IsA("Decal") or part:IsA("Texture") or part:IsA("BillboardGui") then
+									part.Transparency = 1
 								end
 							end
 						else
-							-- Restaura quando se aproxima
-							for _, part in ipairs(char:GetChildren()) do
+							-- Dentro do raio: Restaura a visibilidade apenas para quem está perto de você
+							for _, part in ipairs(enemyChar:GetDescendants()) do
 								if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
+									part.Transparency = 0
+									part.CanCollide = true
+								elseif part:IsA("Decal") or part:IsA("Texture") or part:IsA("BillboardGui") then
 									part.Transparency = 0
 								end
 							end
@@ -80,7 +87,7 @@ pcall(function()
 	end)
 end)
 
--- 3. Coletor de lixo para limpar a memória
+-- 3. Coletor de Lixo Automático para Estabilizar a Memória RAM
 pcall(function()
 	collectgarbage("setpause", 100)
 	collectgarbage("setstepmul", 300)
@@ -92,13 +99,15 @@ pcall(function()
 	end)
 end)
 
--- 4. Carregamento do Loader Oficial
-local success, err = pcall(function()
-	loadstring(game:HttpGet("https://raw.githubusercontent.com/GodErste/Y-Core/refs/heads/main/loader.lua"))()
-end)
+-- 4. Carregamento Isolado do Loader Oficial do Painel
+task.spawn(function()
+	local success, err = pcall(function()
+		loadstring(game:HttpGet("https://raw.githubusercontent.com/GodErste/Y-Core/refs/heads/main/loader.lua"))()
+	end)
 
-if not success then
-	warn("[Y Hub Alt] Falha ao carregar: " .. tostring(err))
-else
-	print("[Y Hub Alt] Rodando com o sistema de sumiço de players ativos!")
-end
+	if not success then
+		warn("[Y Hub Alt] Falha no loader: " .. tostring(err))
+	else
+		print("[Y Hub Alt] Rodando com Limite de Renderização Estrito!")
+	end
+end)
