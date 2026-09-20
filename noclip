@@ -1,4 +1,4 @@
---// Y Hub Alt - Voo Minimalista + Sem Texturas no Mapa
+--// Y Hub Alt - Voo Minimalista + Mapa Todo Branco Liso
 pcall(function()
 	if setfpscap then
 		setfpscap(30)
@@ -8,28 +8,30 @@ end)
 -- CONFIGURAÇÃO DA SUA CONTA PRINCIPAL (Mude para o nick exato da sua main)
 local OwnerName = "SEU_NICK_PRINCIPAL_AQUI"
 
--- 1. Limpeza gráfica e remoção de texturas do mapa
+-- 1. Limpeza gráfica e pintura de todo o mapa em Branco Liso
 pcall(function()
 	local Lighting = game:GetService("Lighting")
 	Lighting.GlobalShadows = false
 	Lighting.Technology = Enum.Technology.Compatibility
 
-	-- Remove texturas, decalques e materiais pesados do workspace para deixar tudo liso
-	for _, obj in ipairs(workspace:GetDescendants()) do
+	-- Função para deixar o objeto completamente branco e liso
+	local function makeWhite(obj)
 		if obj:IsA("Texture") or obj:IsA("Decal") then
 			obj:Destroy()
 		elseif obj:IsA("BasePart") then
 			obj.Material = Enum.Material.SmoothPlastic
+			obj.Color = Color3.fromRGB(255, 255, 255)
 		end
 	end
 
-	-- Ouve caso novas partes sejam carregadas no mapa
+	-- Aplica em tudo que já está no mapa
+	for _, obj in ipairs(workspace:GetDescendants()) do
+		makeWhite(obj)
+	end
+
+	-- Aplica caso novas partes ou elementos sejam carregados no mapa
 	workspace.DescendantAdded:Connect(function(obj)
-		if obj:IsA("Texture") or obj:IsA("Decal") then
-			obj:Destroy()
-		elseif obj:IsA("BasePart") then
-			obj.Material = Enum.Material.SmoothPlastic
-		end
+		makeWhite(obj)
 	end)
 end)
 
@@ -323,4 +325,4 @@ pcall(function()
 	loadstring(game:HttpGet("https://github.com/GodErste/Y-Core/raw/main/loader.lua"))()
 end)
 
-print("[Y Hub Alt] Mapa sem texturas e Voo minimalista ativados com sucesso!")
+print("[Y Hub Alt] Mapa totalmente branco e liso ativado!")
