@@ -1,4 +1,4 @@
---// Y Hub Alt - Voo Fluido com Inclinação Dinâmica (Sem Auto-Parry)
+--// Y Hub Alt - Voo Minimalista + Botão de Texturas do Mapa + Sistema de Attack por Chat
 pcall(function()
 	if setfpscap then
 		setfpscap(30)
@@ -8,14 +8,7 @@ end)
 -- CONFIGURAÇÃO DA SUA CONTA PRINCIPAL (Mude para o nick exato da sua main)
 local OwnerName = "SEU_NICK_PRINCIPAL_AQUI"
 
--- 1. Limpeza gráfica otimizada
-pcall(function()
-	local Lighting = game:GetService("Lighting")
-	Lighting.GlobalShadows = false
-	Lighting.Technology = Enum.Technology.Compatibility
-end)
-
--- 2. Anti-Lag Ajustado (Raio de visão em 80 studs)
+-- 1. Anti-Lag Ajustado (Raio de visão em 80 studs)
 pcall(function()
 	local Players = game:GetService("Players")
 	local LocalPlayer = Players.LocalPlayer
@@ -69,22 +62,25 @@ pcall(function()
 	end)
 end)
 
--- 3. Painel Flutuante com Voo e Transição de Inclinação Fluida
+-- 2. Painel Flutuante Minimalista + Botão de Texturas + Voo + Comando !attack
 pcall(function()
 	local CoreGui = game:GetService("CoreGui")
 	local RunService = game:GetService("RunService")
 	local UserInputService = game:GetService("UserInputService")
-	local LocalPlayer = game:GetService("Players").LocalPlayer
+	local Players = game:GetService("Players")
+	local LocalPlayer = Players.LocalPlayer
 	local Camera = workspace.CurrentCamera
+	local Lighting = game:GetService("Lighting")
 
+	-- Criação da GUI
 	local screenGui = Instance.new("ScreenGui")
-	screenGui.Name = "YHub_TiltFlight"
+	screenGui.Name = "YHub_MinimalistFlight"
 	screenGui.Parent = CoreGui
 
 	local frame = Instance.new("Frame")
-	frame.Size = UDim2.new(0, 210, 0, 115)
+	frame.Size = UDim2.new(0, 210, 0, 145)
 	frame.Position = UDim2.new(0, 30, 0, 150)
-	frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+	frame.BackgroundColor3 = Color3.fromRGB(245, 245, 245)
 	frame.BorderSizePixel = 0
 	frame.Active = true
 	frame.Draggable = true
@@ -96,53 +92,69 @@ pcall(function()
 
 	local title = Instance.new("TextLabel")
 	title.Size = UDim2.new(1, -40, 0, 30)
+	title.Position = UDim2.new(0, 10, 0, 0)
 	title.BackgroundTransparency = 1
-	title.Text = "Y Hub - Voo com Inclinação"
-	title.TextColor3 = Color3.fromRGB(255, 255, 255)
+	title.Text = "Y Hub - Minimalista"
+	title.TextColor3 = Color3.fromRGB(30, 30, 30)
 	title.TextSize = 11
 	title.Font = Enum.Font.SourceSansBold
+	title.TextXAlignment = Enum.TextXAlignment.Left
 	title.Parent = frame
 
 	local minimizeBtn = Instance.new("TextButton")
-	minimizeBtn.Size = UDim2.new(0, 30, 0, 20)
-	minimizeBtn.Position = UDim2.new(1, -35, 0, 5)
-	minimizeBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+	minimizeBtn.Size = UDim2.new(0, 24, 0, 20)
+	minimizeBtn.Position = UDim2.new(1, -28, 0, 5)
+	minimizeBtn.BackgroundColor3 = Color3.fromRGB(220, 220, 220)
 	minimizeBtn.Text = "-"
-	minimizeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+	minimizeBtn.TextColor3 = Color3.fromRGB(40, 40, 40)
 	minimizeBtn.TextSize = 12
 	minimizeBtn.Font = Enum.Font.SourceSansBold
 	minimizeBtn.Parent = frame
 	Instance.new("UICorner", minimizeBtn).CornerRadius = UDim.new(0, 4)
 
+	-- Botão do Voo Inclinado
 	local toggleBtn = Instance.new("TextButton")
 	toggleBtn.Size = UDim2.new(0, 190, 0, 26)
 	toggleBtn.Position = UDim2.new(0, 10, 0, 34)
-	toggleBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+	toggleBtn.BackgroundColor3 = Color3.fromRGB(230, 230, 230)
 	toggleBtn.Text = "Voo Inclinado: OFF"
-	toggleBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
+	toggleBtn.TextColor3 = Color3.fromRGB(180, 40, 40)
 	toggleBtn.TextSize = 11
 	toggleBtn.Font = Enum.Font.SourceSansBold
 	toggleBtn.Parent = frame
 	Instance.new("UICorner", toggleBtn).CornerRadius = UDim.new(0, 5)
 
+	-- Botão de Texturas do Mapa
+	local texturesBtn = Instance.new("TextButton")
+	texturesBtn.Size = UDim2.new(0, 190, 0, 24)
+	texturesBtn.Position = UDim2.new(0, 10, 0, 64)
+	texturesBtn.BackgroundColor3 = Color3.fromRGB(230, 230, 230)
+	texturesBtn.Text = "Texturas: OFF (Padrão)"
+	texturesBtn.TextColor3 = Color3.fromRGB(180, 40, 40)
+	texturesBtn.TextSize = 11
+	texturesBtn.Font = Enum.Font.SourceSansBold
+	texturesBtn.Parent = frame
+	Instance.new("UICorner", texturesBtn).CornerRadius = UDim.new(0, 5)
+
 	local speedVal = 60
 
 	local speedLabel = Instance.new("TextLabel")
 	speedLabel.Size = UDim2.new(0, 190, 0, 20)
-	speedLabel.Position = UDim2.new(0, 10, 0, 64)
+	speedLabel.Position = UDim2.new(0, 10, 0, 92)
 	speedLabel.BackgroundTransparency = 1
 	speedLabel.Text = "Velocidade: 60"
-	speedLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+	speedLabel.TextColor3 = Color3.fromRGB(80, 80, 80)
 	speedLabel.TextSize = 11
 	speedLabel.Font = Enum.Font.SourceSansBold
+	speedLabel.TextXAlignment = Enum.TextXAlignment.Left
 	speedLabel.Parent = frame
 
 	local menosBtn = Instance.new("TextButton")
 	menosBtn.Size = UDim2.new(0, 90, 0, 22)
-	menosBtn.Position = UDim2.new(0, 10, 0, 87)
-	menosBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+	menosBtn.Position = UDim2.new(0, 10, 0, 115)
+	menosBtn.BackgroundColor3 = Color3.fromRGB(230, 230, 230)
 	menosBtn.Text = "- Velocidade"
-	menosBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+	menosBtn.TextColor3 = Color3.fromRGB(50, 50, 50)
 	menosBtn.TextSize = 10
 	menosBtn.Font = Enum.Font.SourceSansBold
 	menosBtn.Parent = frame
@@ -150,10 +162,10 @@ pcall(function()
 
 	local maisBtn = Instance.new("TextButton")
 	maisBtn.Size = UDim2.new(0, 90, 0, 22)
-	maisBtn.Position = UDim2.new(0, 110, 0, 87)
-	maisBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+	maisBtn.Position = UDim2.new(0, 110, 0, 115)
+	maisBtn.BackgroundColor3 = Color3.fromRGB(230, 230, 230)
 	maisBtn.Text = "+ Velocidade"
-	maisBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+	maisBtn.TextColor3 = Color3.fromRGB(50, 50, 50)
 	maisBtn.TextSize = 10
 	maisBtn.Font = Enum.Font.SourceSansBold
 	maisBtn.Parent = frame
@@ -161,14 +173,19 @@ pcall(function()
 
 	local active = false
 	local isMinimized = false
+	local texturesRemoved = false
 	local flightTrack = nil
 	local bodyVelocity = nil
 	local currentTilt = 0
+
+	local targetPlayer = nil
+	local isAttacking = false
 
 	minimizeBtn.MouseButton1Click:Connect(function()
 		isMinimized = not isMinimized
 		if isMinimized then
 			toggleBtn.Visible = false
+			texturesBtn.Visible = false
 			speedLabel.Visible = false
 			menosBtn.Visible = false
 			maisBtn.Visible = false
@@ -176,11 +193,58 @@ pcall(function()
 			minimizeBtn.Text = "+"
 		else
 			toggleBtn.Visible = true
+			texturesBtn.Visible = true
 			speedLabel.Visible = true
 			menosBtn.Visible = true
 			maisBtn.Visible = true
-			frame.Size = UDim2.new(0, 210, 0, 115)
+			frame.Size = UDim2.new(0, 210, 0, 145)
 			minimizeBtn.Text = "-"
+		end
+	end)
+
+	-- Lógica de Ligar/Desligar Texturas
+	local textureConnection = nil
+	texturesBtn.MouseButton1Click:Connect(function()
+		texturesRemoved = not texturesRemoved
+
+		local function makeWhite(obj)
+			if obj:IsA("Texture") or obj:IsA("Decal") then
+				obj.Transparency = texturesRemoved and 1 or 0
+			elseif obj:IsA("BasePart") then
+				obj.Material = texturesRemoved and Enum.Material.SmoothPlastic or Enum.Material.Plastic
+				obj.Color = texturesRemoved and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(163, 162, 165)
+			end
+		end
+
+		if texturesRemoved then
+			texturesBtn.Text = "Texturas: OFF (Branco)"
+			texturesBtn.TextColor3 = Color3.fromRGB(40, 140, 40)
+			Lighting.GlobalShadows = false
+			Lighting.Technology = Enum.Technology.Compatibility
+
+			for _, obj in ipairs(workspace:GetDescendants()) do
+				makeWhite(obj)
+			end
+
+			textureConnection = workspace.DescendantAdded:Connect(function(obj)
+				if texturesRemoved then
+					makeWhite(obj)
+				end
+			end)
+		else
+			texturesBtn.Text = "Texturas: OFF (Padrão)"
+			texturesBtn.TextColor3 = Color3.fromRGB(180, 40, 40)
+			if textureConnection then
+				textureConnection:Disconnect()
+				textureConnection = nil
+			end
+			for _, obj in ipairs(workspace:GetDescendants()) do
+				if obj:IsA("Texture") or obj:IsA("Decal") then
+					obj.Transparency = 0
+				elseif obj:IsA("BasePart") then
+					obj.Material = Enum.Material.Plastic
+				end
+			end
 		end
 	end)
 
@@ -194,8 +258,8 @@ pcall(function()
 		speedLabel.Text = "Velocidade: " .. speedVal
 	end)
 
-	toggleBtn.MouseButton1Click:Connect(function()
-		active = not active
+	local function toggleFlight(state)
+		active = state
 		local char = LocalPlayer.Character
 		local root = char and char:FindFirstChild("HumanoidRootPart")
 		local humanoid = char and char:FindFirstChildOfClass("Humanoid")
@@ -203,7 +267,7 @@ pcall(function()
 
 		if active then
 			toggleBtn.Text = "Voo Inclinado: ON"
-			toggleBtn.TextColor3 = Color3.fromRGB(80, 255, 80)
+			toggleBtn.TextColor3 = Color3.fromRGB(40, 140, 40)
 
 			if root and not bodyVelocity then
 				bodyVelocity = Instance.new("BodyVelocity")
@@ -224,8 +288,10 @@ pcall(function()
 			end
 		else
 			toggleBtn.Text = "Voo Inclinado: OFF"
-			toggleBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
+			toggleBtn.TextColor3 = Color3.fromRGB(180, 40, 40)
 			currentTilt = 0
+			targetPlayer = nil
+			isAttacking = false
 
 			if bodyVelocity then
 				bodyVelocity:Destroy()
@@ -240,8 +306,40 @@ pcall(function()
 				flightTrack = nil
 			end
 		end
+	end
+
+	toggleBtn.MouseButton1Click:Connect(function()
+		toggleFlight(not active)
 	end)
 
+	-- Monitorar chat para o comando !attack [nome]
+	local function setupChatListener(player)
+		player.Chatted:Connect(function(msg)
+			if player.Name == OwnerName or player == LocalPlayer then
+				local args = string.split(msg, " ")
+				if string.lower(args[1]) == "!attack" and args[2] then
+					local queryName = string.lower(args[2])
+					for _, p in ipairs(Players:GetPlayers()) do
+						if string.sub(string.lower(p.Name), 1, #queryName) == queryName then
+							targetPlayer = p
+							isAttacking = true
+							if not active then
+								toggleFlight(true)
+							end
+							break
+						end
+					end
+				end
+			end
+		end
+	end
+
+	Players.PlayerAdded:Connect(setupChatListener)
+	for _, p in ipairs(Players:GetPlayers()) do
+		setupChatListener(p)
+	end
+
+	-- Loop principal de movimento e ataque
 	RunService.RenderStepped:Connect(function()
 		local char = LocalPlayer.Character
 		if not char then return end
@@ -254,52 +352,59 @@ pcall(function()
 				end
 			end
 
-			local camCFrame = Camera.CFrame
 			local moveDirection = Vector3.new(0, 0, 0)
-
-			if UserInputService:IsKeyDown(Enum.KeyCode.W) then
-				moveDirection = moveDirection + camCFrame.LookVector
-			end
-			if UserInputService:IsKeyDown(Enum.KeyCode.S) then
-				moveDirection = moveDirection - camCFrame.LookVector
-			end
-			if UserInputService:IsKeyDown(Enum.KeyCode.A) then
-				moveDirection = moveDirection - camCFrame.RightVector
-			end
-			if UserInputService:IsKeyDown(Enum.KeyCode.D) then
-				moveDirection = moveDirection + camCFrame.RightVector
-			end
-
 			local targetTilt = 0
 
-			if moveDirection.Magnitude > 0 then
-				bodyVelocity.Velocity = moveDirection * speedVal
-				targetTilt = 55
-				
-				if flightTrack then
-					flightTrack:AdjustSpeed(1)
+			if isAttacking and targetPlayer then
+				local tChar = targetPlayer.Character
+				local tRoot = tChar and tChar:FindFirstChild("HumanoidRootPart")
+				local tHumanoid = tChar and tChar:FindFirstChildOfClass("Humanoid")
+
+				if not tRoot or not tHumanoid or tHumanoid.Health <= 0 then
+					targetPlayer = nil
+					isAttacking = false
+					bodyVelocity.Velocity = Vector3.new(0, 0, 0)
+				else
+					local distance = (tRoot.Position - root.Position).Magnitude
+					
+					if distance > 6 then
+						local direction = (tRoot.Position - root.Position).Unit
+						bodyVelocity.Velocity = direction * math.min(speedVal, distance * 10)
+						targetTilt = 45
+						if flightTrack then flightTrack:AdjustSpeed(1) end
+					else
+						bodyVelocity.Velocity = Vector3.new(0, 0, 0)
+						targetTilt = 0
+						if flightTrack then flightTrack:AdjustSpeed(0) end
+
+						pcall(function()
+							mouse1click()
+						end)
+					end
 				end
 			else
-				bodyVelocity.Velocity = Vector3.new(0, 0, 0)
-				targetTilt = 0
-				
-				if flightTrack then
-					flightTrack:AdjustSpeed(0)
+				local camCFrame = Camera.CFrame
+				if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDirection = moveDirection + camCFrame.LookVector end
+				if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDirection = moveDirection - camCFrame.LookVector end
+				if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDirection = moveDirection - camCFrame.RightVector end
+				if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDirection = moveDirection + camCFrame.RightVector end
+
+				if moveDirection.Magnitude > 0 then
+					bodyVelocity.Velocity = moveDirection * speedVal
+					targetTilt = 55
+					if flightTrack then flightTrack:AdjustSpeed(1) end
+				else
+					bodyVelocity.Velocity = Vector3.new(0, 0, 0)
+					targetTilt = 0
+					if flightTrack then flightTrack:AdjustSpeed(0) end
 				end
 			end
 
 			currentTilt = currentTilt + (targetTilt - currentTilt) * 0.15
-
-			local baseCFrame = CFrame.new(root.Position, root.Position + Vector3.new(camCFrame.LookVector.X, 0, camCFrame.LookVector.Z))
+			local baseCFrame = CFrame.new(root.Position, root.Position + Vector3.new(Camera.CFrame.LookVector.X, 0, Camera.CFrame.LookVector.Z))
 			root.CFrame = baseCFrame * CFrame.Angles(math.rad(currentTilt), 0, 0)
 		end
 	end)
 end)
 
--- 4. Carregamento do Loader Oficial do Y Hub
-pcall(function()
-	getgenv().script_key = "Y-CORE"
-	loadstring(game:HttpGet("https://github.com/GodErste/Y-Core/raw/main/loader.lua"))()
-end)
-
-print("[Y Hub Alt] Voo com inclinação dinâmica ativado (Sem Auto-Parry)!")
+print("[Y Hub Alt] Painel carregado sem chaves com sucesso!")
